@@ -1,0 +1,289 @@
+name: Build Windows Executable for SVG-Trainer
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  build-win7-x64:
+    name: Build SVG-Trainer x64 (Win7/10/11)
+    runs-on: windows-2019
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.8.10 (x64)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.8.10'
+          architecture: x64
+
+      - name: Install dependencies for x64
+        run: |
+          python -m pip install --upgrade pip
+          # ВАЖНО: замените этот список на ваши реальные зависимости из requirements.txt
+          pip install PyQt5 pyinstaller
+          # Если у вас есть файл requirements.txt, раскомментируйте следующую строку:
+          # pip install -r requirements.txt
+
+      - name: Build x64 executable
+        run: |
+          $exe_name = "SVGTrainer_x64"
+          Remove-Item -Recurse -Force dist, build -ErrorAction SilentlyContinue
+          
+          # Собираем с ресурсами (все файлы упакованы внутрь)
+          pyinstaller --onefile --windowed --icon=icon.ico --name="$exe_name" --noupx --clean `
+            --hidden-import=PyQt5 `
+            --hidden-import=PyQt5.QtCore `
+            --hidden-import=PyQt5.QtGui `
+            --hidden-import=PyQt5.QtWidgets `
+            --add-data="styles.qss;." `
+            --add-data="icon.ico;." `
+            main.py database.py auth_manager.py login_dialog.py main_window.py statistics_widget.py test_window.py
+          
+          if (Test-Path "dist/$exe_name.exe") {
+            Write-Host "✅ Сборка x64 успешна"
+            $size = (Get-Item "dist/$exe_name.exe").Length / 1MB
+            Write-Host "📦 Размер файла: $($size.ToString('0.00')) MB"
+          } else {
+            Write-Error "❌ Ошибка сборки x64"
+            if (Test-Path "build") {
+              $warnFile = Get-ChildItem -Path "build" -Recurse -Filter "*.txt" | Select-Object -First 1
+              if ($warnFile) {
+                Write-Host "📄 Последние ошибки из warn файла:"
+                Get-Content $warnFile.FullName -Tail 20
+              }
+            }
+            exit 1
+          }
+
+      - name: Upload x64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SVG-Trainer-x64
+          path: dist/SVGTrainer_x64.exe
+
+  build-win7-x86:
+    name: Build SVG-Trainer x86 (Win7/10/11)
+    runs-on: windows-2019
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.8.10 (x86)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.8.10'
+          architecture: x86
+
+      - name: Install dependencies for x86
+        run: |
+          python -m pip install --upgrade pip==20.3.4
+          pip install wheel==0.34.2 setuptools==44.0.0
+          # ВАЖНО: замените этот список на ваши реальные зависимости для x86
+          pip install PyQt5 pyinstaller
+          # pip install -r requirements.txt
+
+      - name: Build x86 executable
+        run: |
+          $exe_name = "SVGTrainer_x86"
+          Remove-Item -Recurse -Force dist, build -ErrorAction SilentlyContinue
+          
+          pyinstaller --onefile --windowed --icon=icon.ico --name="$exe_name" --noupx --clean `
+            --hidden-import=PyQt5 `
+            --hidden-import=PyQt5.QtCore `
+            --hidden-import=PyQt5.QtGui `
+            --hidden-import=PyQt5.QtWidgets `
+            --add-data="styles.qss;." `
+            --add-data="icon.ico;." `
+            main.py database.py auth_manager.py login_dialog.py main_window.py statistics_widget.py test_window.py
+          
+          if (Test-Path "dist/$exe_name.exe") {
+            Write-Host "✅ Сборка x86 успешна"
+            $size = (Get-Item "dist/$exe_name.exe").Length / 1MB
+            Write-Host "📦 Размер файла: $($size.ToString('0.00')) MB"
+          } else {
+            Write-Error "❌ Ошибка сборки x86"
+            exit 1
+          }
+
+      - name: Upload x86 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SVG-Trainer-x86
+          path: dist/SVGTrainer_x86.exe
+
+  create-release:
+    name: Create Universal Release for SVG-Trainer
+    needs: [build-win7-x64, build-win7-x86]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+
+    steps:
+      - name: Get current date
+        id: date
+        run: echo "date=$(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_OUTPUT
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create release structure
+        run: |
+          version=${{ github.run_number }}
+          release_name="SVG-Trainer_v$version"
+          
+          mkdir -p "$release_name/x64"
+          mkdir -p "$release_name/x86"
+          
+          if [ -f "artifacts/SVG-Trainer-x64/SVGTrainer_x64.exe" ]; then
+            cp "artifacts/SVG-Trainer-x64/SVGTrainer_x64.exe" "$release_name/x64/"
+            echo "✅ x64 версия скопирована"
+          fi
+          
+          if [ -f "artifacts/SVG-Trainer-x86/SVGTrainer_x86.exe" ]; then
+            cp "artifacts/SVG-Trainer-x86/SVGTrainer_x86.exe" "$release_name/x86/"
+            echo "✅ x86 версия скопирована"
+          fi
+          
+          # Автозапуск
+          cat > "$release_name/Start_SVG_Trainer.bat" << 'EOF'
+          @echo off
+          chcp 65001 >nul
+          echo ========================================
+          echo   SVG-Trainer - Автоматический запуск
+          echo ========================================
+          echo.
+          
+          if "%PROCESSOR_ARCHITECTURE%"=="AMD64" (
+              set "EXE_PATH=x64\SVGTrainer_x64.exe"
+              echo Обнаружена 64-битная система
+          ) else (
+              set "EXE_PATH=x86\SVGTrainer_x86.exe"
+              echo Обнаружена 32-битная система
+          )
+          
+          echo.
+          
+          if exist "%EXE_PATH%" (
+              echo Запуск программы...
+              echo.
+              start "" "%EXE_PATH%"
+          ) else (
+              echo ❌ Ошибка: Файл не найден
+              echo Путь: %EXE_PATH%
+              echo.
+              echo Проверьте, что:
+              echo 1. Вы распаковали весь архив
+              echo 2. Файлы находятся в правильных папках
+              echo.
+              pause
+          )
+          EOF
+          
+          # README
+          cat > "$release_name/README.txt" << EOF
+          ========================================
+          SVG-Trainer v$version
+          ========================================
+          
+          СОДЕРЖИМОЕ:
+          • x64/SVGTrainer_x64.exe - 64-битная версия
+          • x86/SVGTrainer_x86.exe - 32-битная версия
+          • Start_SVG_Trainer.bat   - Автозапуск
+          
+          🚀 ИНСТРУКЦИЯ:
+          1. Распакуйте архив в любую папку
+          2. Запустите Start_SVG_Trainer.bat
+          3. Программа сама выберет нужную версию
+          
+          ⚡ ОСОБЕННОСТИ:
+          • Все ресурсы упакованы внутрь EXE файла
+          • Не требует дополнительных файлов
+          • Автономная работа
+          
+          ⚠️  ДЛЯ WINDOWS 7:
+          Если программа не запускается:
+          1. Установите обновление KB2999226
+          2. Установите Visual C++ Redistributable
+          3. Перезагрузите компьютер
+          
+          📞 ПОДДЕРЖКА:
+          https://github.com/${{ github.repository }}/issues
+          
+          📅 Дата сборки: ${{ steps.date.outputs.date }}
+          EOF
+
+      - name: Create ZIP archive
+        run: |
+          version=${{ github.run_number }}
+          release_name="SVG-Trainer_v$version"
+          zip -r "${release_name}.zip" "$release_name"
+          echo "✅ Архив создан: ${release_name}.zip"
+          echo "📊 Размер архива: $(du -h "${release_name}.zip" | cut -f1)"
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SVG-Trainer-Release
+          path: SVG-Trainer_v${{ github.run_number }}.zip
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          files: SVG-Trainer_v${{ github.run_number }}.zip
+          tag_name: v${{ github.run_number }}
+          name: SVG-Trainer v${{ github.run_number }}
+          body: |
+            ## 🚀 Универсальная сборка SVG-Trainer для Windows
+            
+            ### 📦 Содержимое:
+            - **x64/SVGTrainer_x64.exe** - для 64-битных систем
+            - **x86/SVGTrainer_x86.exe** - для 32-битных систем
+            - **Start_SVG_Trainer.bat** - автоматический выбор версии
+            
+            ### ⚡ Особенности:
+            - ✅ Все ресурсы упакованы внутрь EXE
+            - ✅ Не требует дополнительных файлов
+            - ✅ Автономная работа
+            
+            ### 🚀 Быстрый старт:
+            1. Скачайте архив
+            2. Распакуйте в любую папку
+            3. Запустите `Start_SVG_Trainer.bat`
+            
+            ### 🔧 Системные требования:
+            - Windows 7 SP1 или новее
+            - 2 ГБ ОЗУ (рекомендуется 4 ГБ)
+            - 100 МБ свободного места
+            
+            ### 🛠️ Для Windows 7:
+            Если программа не запускается, установите:
+            1. [Обновление KB2999226](https://support.microsoft.com/en-us/topic/update-for-universal-c-runtime-in-windows-c0514201-7fe6-95a3-b0a5-287930f3560c)
+            2. [Visual C++ Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe)
+            
+            ### 📝 Информация о сборке:
+            - Версия Python: 3.8.10
+            - PyInstaller: 5.13.0 (x64) / 5.0.1 (x86)
+            - Сборка №: ${{ github.run_number }}
+            - Дата сборки: ${{ steps.date.outputs.date }}
+            
+            ### 🔗 Ссылки:
+            - [Исходный код](https://github.com/${{ github.repository }})
+            - [Сообщить об ошибке](https://github.com/${{ github.repository }}/issues)
+            
+            ---
+            *Собрано: ${{ steps.date.outputs.date }}*
+          draft: false
+          prerelease: false
