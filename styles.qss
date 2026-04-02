@@ -1,0 +1,149 @@
+/* Основные стили */
+QMainWindow {
+    background-color: #1e1e2e;
+}
+
+QLabel {
+    color: #cdd6f4;
+}
+
+QFrame {
+    background-color: #313244;
+    border-radius: 10px;
+}
+
+/* Кнопки */
+QPushButton {
+    background-color: #89b4fa;
+    color: #1e1e2e;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-weight: bold;
+}
+
+QPushButton:hover {
+    background-color: #b4befe;
+}
+
+QPushButton:pressed {
+    background-color: #6c96d6;
+}
+
+/* Табвиджет */
+QTabWidget::pane {
+    background-color: #313244;
+    border: 2px solid #45475a;
+    border-radius: 10px;
+}
+
+QTabBar::tab {
+    background-color: #45475a;
+    color: #cdd6f4;
+    padding: 10px 20px;
+    margin-right: 5px;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+
+QTabBar::tab:selected {
+    background-color: #89b4fa;
+    color: #1e1e2e;
+}
+
+QTabBar::tab:hover:!selected {
+    background-color: #585b70;
+}
+
+/* ScrollArea */
+QScrollArea {
+    background-color: #313244;
+    border: none;
+}
+
+QScrollBar:vertical {
+    background-color: #45475a;
+    width: 10px;
+    border-radius: 5px;
+}
+
+QScrollBar::handle:vertical {
+    background-color: #89b4fa;
+    border-radius: 5px;
+    min-height: 20px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background-color: #b4befe;
+}
+
+/* Таблицы */
+QTableWidget {
+    background-color: #313244;
+    color: #cdd6f4;
+    gridline-color: #45475a;
+    selection-background-color: #89b4fa;
+    selection-color: #1e1e2e;
+}
+
+QHeaderView::section {
+    background-color: #45475a;
+    color: #cdd6f4;
+    padding: 8px;
+    border: 1px solid #585b70;
+}
+
+/* Поля ввода */
+QLineEdit, QTextEdit {
+    background-color: #45475a;
+    color: #cdd6f4;
+    border: 1px solid #585b70;
+    border-radius: 6px;
+    padding: 8px;
+}
+
+QLineEdit:focus, QTextEdit:focus {
+    border-color: #89b4fa;
+}
+
+/* Чекбоксы */
+QCheckBox {
+    color: #cdd6f4;
+    spacing: 8px;
+}
+
+QCheckBox::indicator {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    border: 2px solid #89b4fa;
+    background-color: #45475a;
+}
+
+QCheckBox::indicator:checked {
+    background-color: #a6e3a1;
+    border-color: #a6e3a1;
+}
+
+/* Прогресс бар */
+QProgressBar {
+    border: none;
+    border-radius: 10px;
+    background-color: #45475a;
+    text-align: center;
+    color: #cdd6f4;
+}
+
+QProgressBar::chunk {
+    background-color: #89b4fa;
+    border-radius: 10px;
+}
+
+/* Диалоги */
+QDialog {
+    background-color: #313244;
+}
+
+QMessageBox {
+    background-color: #313244;
+}
