@@ -13,7 +13,7 @@ permissions:
 jobs:
   build-win7-x64:
     name: Build SVG-Trainer x64 (Win7/10/11)
-    runs-on: windows-latest # Используем windows-2019 для лучшей совместимости с Win7
+    runs-on: windows-latest
 
     steps:
       - name: Checkout code
@@ -28,17 +28,14 @@ jobs:
       - name: Install dependencies for x64
         run: |
           python -m pip install --upgrade pip
-          # Явно указываем все зависимости из requirements.txt, как в старом проекте
           pip install numpy==1.21.6 PyQt5==5.15.9 matplotlib==3.7.1 Pillow==10.0.0 pyinstaller==5.13.0
 
       - name: Build x64 executable
         run: |
           $exe_name = "SVGTrainer_x64"
           Remove-Item -Recurse -Force dist, build -ErrorAction SilentlyContinue
-
-          # Собираем с ресурсами (все файлы упакованы внутрь)
+          
           pyinstaller --onefile --windowed --name="$exe_name" --noupx --clean `
-            # Явные скрытые импорты для matplotlib, numpy и других библиотек
             --hidden-import=PyQt5 `
             --hidden-import=PyQt5.QtCore `
             --hidden-import=PyQt5.QtGui `
@@ -53,9 +50,7 @@ jobs:
             --hidden-import=PIL.Image `
             --hidden-import=encodings.utf_8 `
             --hidden-import=encodings.cp1251 `
-            # Добавляем файл стилей
             --add-data="styles.qss;." `
-            # Явно перечисляем все .py файлы проекта, которые нужно включить
             main.py database.py auth_manager.py login_dialog.py main_window.py statistics_widget.py test_window.py
 
           if (Test-Path "dist/$exe_name.exe") {
@@ -96,17 +91,15 @@ jobs:
 
       - name: Install dependencies for x86
         run: |
-          # Для x86 используем более старые версии pip и некоторые библиотеки для совместимости
           python -m pip install --upgrade pip==20.3.4
           pip install wheel==0.34.2 setuptools==44.0.0
-          # Явно указываем зависимости для x86, подбирая совместимые версии
           pip install numpy==1.19.3 PyQt5==5.15.4 matplotlib==3.3.4 Pillow==8.4.0 pyinstaller==5.0.1
 
       - name: Build x86 executable
         run: |
           $exe_name = "SVGTrainer_x86"
           Remove-Item -Recurse -Force dist, build -ErrorAction SilentlyContinue
-
+          
           pyinstaller --onefile --windowed --name="$exe_name" --noupx --clean `
             --hidden-import=PyQt5 `
             --hidden-import=PyQt5.QtCore `
@@ -140,7 +133,6 @@ jobs:
           name: SVG-Trainer-x86
           path: dist/SVGTrainer_x86.exe
 
-  # Этот джоб остается без изменений, он отлично работает
   create-release:
     name: Create Universal Release for SVG-Trainer
     needs: [build-win7-x64, build-win7-x86]
@@ -177,7 +169,6 @@ jobs:
             echo "✅ x86 версия скопирована"
           fi
           
-          # Автозапуск
           cat > "$release_name/Start_SVG_Trainer.bat" << 'EOF'
           @echo off
           chcp 65001 >nul
@@ -212,7 +203,6 @@ jobs:
           )
           EOF
           
-          # README
           cat > "$release_name/README.txt" << EOF
           ========================================
           SVG-Trainer v$version
