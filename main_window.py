@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QScrollArea, QMessageBox, QDialog, QLineEdit,
                              QTextEdit, QCheckBox,
                              QFileDialog, QTableWidget,
-                             QTableWidgetItem, QComboBox, QSizePolicy)
+                             QTableWidgetItem, QComboBox, QSizePolicy, QApplication)
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont, QPixmap, QColor
 from PyQt5.uic import loadUi
@@ -31,7 +31,6 @@ class MainWindow(QMainWindow):
         if os.path.exists(ui_path):
             loadUi(ui_path, self)
         else:
-            print(f"UI file not found: {ui_path}")
             self.setup_manual_ui()
 
         # Подключаем сигналы для кнопок из UI
@@ -79,7 +78,10 @@ class MainWindow(QMainWindow):
         """Загрузка стилей с улучшенной читаемостью"""
         style = """
         QMainWindow {
-            background-color: #1e1e2e;
+            background-image: url(background.jpg);
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
         }
         QLabel {
             color: #cdd6f4;
@@ -482,6 +484,13 @@ class MainWindow(QMainWindow):
         self.users_table.setHorizontalHeaderLabels(["ID", "ФИО", "Логин", "Действия"])
         self.users_table.horizontalHeader().setStretchLastSection(True)
         self.users_table.setAlternatingRowColors(True)
+
+        # Настройка ширины колонок
+        self.users_table.setColumnWidth(0, 50)  # ID
+        self.users_table.setColumnWidth(1, 250)  # ФИО
+        self.users_table.setColumnWidth(2, 150)  # Логин
+        # Колонка "Действия" растягивается автоматически
+
         layout.addWidget(self.users_table)
 
         self.load_users_list()
@@ -536,10 +545,47 @@ class MainWindow(QMainWindow):
             self.users_table.setItem(row, 1, QTableWidgetItem(user['full_name']))
             self.users_table.setItem(row, 2, QTableWidgetItem(user['username']))
 
+            # Создаем виджет с кнопками
+            buttons_widget = QWidget()
+            buttons_layout = QHBoxLayout(buttons_widget)
+            buttons_layout.setContentsMargins(0, 0, 0, 0)
+            buttons_layout.setSpacing(5)
+
+            # Кнопка редактирования
+            edit_btn = QPushButton("✏ Редактировать")
+            edit_btn.clicked.connect(lambda checked, uid=user['id']: self.edit_user(uid))
+            edit_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #f9e2af;
+                    color: #1e1e2e;
+                    padding: 5px 10px;
+                    font-size: 11px;
+                }
+                QPushButton:hover {
+                    background-color: #f9e2af;
+                    opacity: 0.8;
+                }
+            """)
+
             # Кнопка удаления
             delete_btn = QPushButton("🗑 Удалить")
             delete_btn.clicked.connect(lambda checked, uid=user['id']: self.delete_user(uid))
-            self.users_table.setCellWidget(row, 3, delete_btn)
+            delete_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #f38ba8;
+                    color: #1e1e2e;
+                    padding: 5px 10px;
+                    font-size: 11px;
+                }
+                QPushButton:hover {
+                    background-color: #f38ba8;
+                    opacity: 0.8;
+                }
+            """)
+
+            buttons_layout.addWidget(edit_btn)
+            buttons_layout.addWidget(delete_btn)
+            self.users_table.setCellWidget(row, 3, buttons_widget)
 
     def load_questions_list(self):
         """Загрузка вопросов в таблицу"""
@@ -1175,8 +1221,269 @@ class MainWindow(QMainWindow):
             self.load_questions_list()
 
     def add_user_dialog(self):
-        # ... (оставляем как было)
-        pass
+        """Диалог добавления/редактирования пользователя"""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Добавление пользователя")
+        dialog.setMinimumSize(400, 400)
+        dialog.setStyleSheet("""
+            QDialog {
+                background-color: #1e1e2e;
+            }
+            QLabel {
+                color: #cdd6f4;
+            }
+            QLineEdit, QComboBox {
+                background-color: #45475a;
+                color: #cdd6f4;
+                border: 1px solid #6c7086;
+                border-radius: 6px;
+                padding: 18px;
+                font-size: 12px;
+            }
+            QPushButton {
+                background-color: #89b4fa;
+                color: #1e1e2e;
+                border: none;
+                border-radius: 8px;
+                padding: 15px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #b4befe;
+            }
+        """)
+
+        layout = QVBoxLayout(dialog)
+        layout.setSpacing(15)
+
+        # ФИО
+        full_name_label = QLabel("ФИО пользователя:")
+        layout.addWidget(full_name_label)
+        full_name_edit = QLineEdit()
+        full_name_edit.setPlaceholderText("Иванов Иван Иванович")
+        layout.addWidget(full_name_edit)
+
+        # Логин
+        username_label = QLabel("Логин:")
+        layout.addWidget(username_label)
+        username_edit = QLineEdit()
+        username_edit.setPlaceholderText("username")
+        layout.addWidget(username_edit)
+
+        # Пароль
+        password_label = QLabel("Пароль:")
+        layout.addWidget(password_label)
+        password_edit = QLineEdit()
+        password_edit.setPlaceholderText("пароль")
+        password_edit.setEchoMode(QLineEdit.Password)
+        layout.addWidget(password_edit)
+
+        # Подтверждение пароля
+        confirm_label = QLabel("Подтверждение пароля:")
+        layout.addWidget(confirm_label)
+        confirm_edit = QLineEdit()
+        confirm_edit.setPlaceholderText("повторите пароль")
+        confirm_edit.setEchoMode(QLineEdit.Password)
+        layout.addWidget(confirm_edit)
+
+        # Роль
+        role_label = QLabel("Роль:")
+        layout.addWidget(role_label)
+        role_combo = QComboBox()
+        role_combo.addItems(["user", "admin"])
+        layout.addWidget(role_combo)
+
+        layout.addStretch()
+
+        # Кнопки
+        buttons_layout = QHBoxLayout()
+        save_btn = QPushButton("💾 Сохранить")
+        cancel_btn = QPushButton("❌ Отмена")
+        buttons_layout.addWidget(save_btn)
+        buttons_layout.addWidget(cancel_btn)
+        layout.addLayout(buttons_layout)
+
+        def save_user():
+            full_name = full_name_edit.text().strip()
+            username = username_edit.text().strip()
+            password = password_edit.text().strip()
+            confirm = confirm_edit.text().strip()
+            role = role_combo.currentText()
+
+            if not full_name or not username or not password:
+                QMessageBox.warning(dialog, "Ошибка", "Заполните все поля")
+                return
+
+            if password != confirm:
+                QMessageBox.warning(dialog, "Ошибка", "Пароли не совпадают")
+                return
+
+            if self.db.add_user(username, password, role, full_name):
+                QMessageBox.information(dialog, "Успех", "Пользователь добавлен")
+                dialog.accept()
+                self.load_users_list()
+            else:
+                QMessageBox.warning(dialog, "Ошибка", "Пользователь с таким логином уже существует")
+
+        save_btn.clicked.connect(save_user)
+        cancel_btn.clicked.connect(dialog.reject)
+        dialog.exec_()
+
+    def edit_user(self, user_id):
+        """Редактирование пользователя"""
+        user = self.db.get_user_by_id(user_id)
+        if not user:
+            return
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle(f"Редактирование пользователя: {user['username']}")
+        dialog.setMinimumSize(400, 450)
+        dialog.setStyleSheet("""
+            QDialog {
+                background-color: #1e1e2e;
+            }
+            QLabel {
+                color: #cdd6f4;
+            }
+            QLineEdit, QComboBox {
+                background-color: #45475a;
+                color: #cdd6f4;
+                border: 1px solid #6c7086;
+                border-radius: 6px;
+                padding: 20px;
+                font-size: 12px;
+            }
+            QCheckBox {
+                color: #cdd6f4;
+            }
+            QPushButton {
+                background-color: #89b4fa;
+                color: #1e1e2e;
+                border: none;
+                border-radius: 8px;
+                padding: 20px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #b4befe;
+            }
+        """)
+
+        layout = QVBoxLayout(dialog)
+        layout.setSpacing(15)
+
+        # ФИО
+        full_name_label = QLabel("ФИО пользователя:")
+        layout.addWidget(full_name_label)
+        full_name_edit = QLineEdit()
+        full_name_edit.setText(user['full_name'])
+        layout.addWidget(full_name_edit)
+
+        # Логин
+        username_label = QLabel("Логин:")
+        layout.addWidget(username_label)
+        username_edit = QLineEdit()
+        username_edit.setText(user['username'])
+        layout.addWidget(username_edit)
+
+        # Чекбокс смены пароля
+        change_password_cb = QCheckBox("Изменить пароль")
+        layout.addWidget(change_password_cb)
+
+        # Пароль (скрыт по умолчанию)
+        password_label = QLabel("Новый пароль:")
+        password_label.hide()
+        layout.addWidget(password_label)
+        password_edit = QLineEdit()
+        password_edit.setPlaceholderText("новый пароль")
+        password_edit.setEchoMode(QLineEdit.Password)
+        password_edit.hide()
+        layout.addWidget(password_edit)
+
+        # Подтверждение пароля
+        confirm_label = QLabel("Подтверждение пароля:")
+        confirm_label.hide()
+        layout.addWidget(confirm_label)
+        confirm_edit = QLineEdit()
+        confirm_edit.setPlaceholderText("повторите пароль")
+        confirm_edit.setEchoMode(QLineEdit.Password)
+        confirm_edit.hide()
+        layout.addWidget(confirm_edit)
+
+        # Роль
+        role_label = QLabel("Роль:")
+        layout.addWidget(role_label)
+        role_combo = QComboBox()
+        role_combo.addItems(["user", "admin"])
+        role_combo.setCurrentText(user['role'])
+        layout.addWidget(role_combo)
+
+        def toggle_password_fields(state):
+            is_checked = state == Qt.Checked
+            password_label.setVisible(is_checked)
+            password_edit.setVisible(is_checked)
+            confirm_label.setVisible(is_checked)
+            confirm_edit.setVisible(is_checked)
+
+        change_password_cb.stateChanged.connect(toggle_password_fields)
+
+        layout.addStretch()
+
+        # Кнопки
+        buttons_layout = QHBoxLayout()
+        save_btn = QPushButton("💾 Сохранить изменения")
+        cancel_btn = QPushButton("❌ Отмена")
+        buttons_layout.addWidget(save_btn)
+        buttons_layout.addWidget(cancel_btn)
+        layout.addLayout(buttons_layout)
+
+        def save_user():
+            full_name = full_name_edit.text().strip()
+            username = username_edit.text().strip()
+            role = role_combo.currentText()
+
+            if not full_name or not username:
+                QMessageBox.warning(dialog, "Ошибка", "Заполните ФИО и логин")
+                return
+
+            # Проверка на дубликат логина (если логин изменился)
+            if username != user['username']:
+                existing = self.db.get_user_by_username(username)
+                if existing and existing['id'] != user_id:
+                    QMessageBox.warning(dialog, "Ошибка", "Пользователь с таким логином уже существует")
+                    return
+
+            # Если нужно изменить пароль
+            if change_password_cb.isChecked():
+                password = password_edit.text().strip()
+                confirm = confirm_edit.text().strip()
+
+                if not password:
+                    QMessageBox.warning(dialog, "Ошибка", "Введите новый пароль")
+                    return
+
+                if password != confirm:
+                    QMessageBox.warning(dialog, "Ошибка", "Пароли не совпадают")
+                    return
+
+                if self.db.update_user(user_id, username, full_name, role, password):
+                    QMessageBox.information(dialog, "Успех", "Пользователь обновлен")
+                    dialog.accept()
+                    self.load_users_list()
+                else:
+                    QMessageBox.warning(dialog, "Ошибка", "Не удалось обновить пользователя")
+            else:
+                # Обновляем без смены пароля
+                if self.db.update_user(user_id, username, full_name, role):
+                    QMessageBox.information(dialog, "Успех", "Пользователь обновлен")
+                    dialog.accept()
+                    self.load_users_list()
+                else:
+                    QMessageBox.warning(dialog, "Ошибка", "Не удалось обновить пользователя")
+
+        save_btn.clicked.connect(save_user)
+        cancel_btn.clicked.connect(dialog.reject)
+        dialog.exec_()
 
     def start_test(self):
         user = self.auth_manager.get_current_user()
@@ -1197,12 +1504,25 @@ class MainWindow(QMainWindow):
         self.load_mistakes()
 
     def change_user(self):
+        """Смена пользователя без перезапуска приложения"""
         reply = QMessageBox.question(self, "Смена пользователя",
-                                     "Вы действительно хотите сменить пользователя?\nПриложение будет перезапущено.",
+                                     "Вы действительно хотите сменить пользователя?\nТекущая сессия будет завершена.",
                                      QMessageBox.Yes | QMessageBox.No)
         if reply == QMessageBox.Yes:
+            # Очищаем текущего пользователя
             self.auth_manager.logout()
-            self.restart_application()
+
+            # Скрываем главное окно
+            self.hide()
+
+            # Создаем и показываем диалог входа
+            login_dialog = LoginDialog(self.auth_manager, self)
+            login_dialog.login_successful.connect(self.on_login_success)
+
+            # Если диалог был закрыт без входа (крестик), выходим из приложения
+            if login_dialog.exec_() == QDialog.Rejected:
+                # Если пользователь закрыл окно входа, выходим из приложения
+                QApplication.quit()
 
     def logout(self):
         self.auth_manager.logout()
@@ -1487,7 +1807,6 @@ class MainWindow(QMainWindow):
         self.load_stats()  # Загружаем статистику пользователя
         self.load_mistakes()
 
-        # Если админ, загружаем админскую статистику
         if self.auth_manager.is_admin():
             self.load_admin_stats()
 
@@ -1584,19 +1903,12 @@ class MainWindow(QMainWindow):
 
     def load_stats(self):
         """Загрузка расширенной статистики для пользователя"""
-        print("Загрузка статистики...")  # Отладка
         user = self.auth_manager.get_current_user()
         if not user:
-            print("Пользователь не найден")
             return
-
-        print(f"Загрузка статистики для пользователя: {user['full_name']}")
-
         # Получаем детальную статистику
         stats = self.db.get_user_detailed_stats(user['id'])
         results = self.db.get_user_test_results(user['id'])
-
-        print(f"Найдено результатов: {len(results)}")
 
         # Общая статистика
         if stats['total_tests'] > 0:
@@ -1778,13 +2090,8 @@ class MainWindow(QMainWindow):
 
     def load_admin_stats(self):
         """Загрузка расширенной статистики для админа"""
-        print("Загрузка админской статистики...")
-
         stats = self.db.get_overall_stats()
         all_users_stats = self.db.get_all_users_stats()
-
-        print(f"Найдено пользователей с данными: {len(all_users_stats)}")
-
         # Общая статистика
         total_tests = sum(u['total_tests'] for u in all_users_stats)
         total_correct = sum(u['total_correct'] for u in all_users_stats)
