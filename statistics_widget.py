@@ -18,7 +18,8 @@ class StatisticsChart(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        self.figure = Figure(figsize=(10, 5), dpi=100, facecolor='#313244')
+        # Светлый фон для графика
+        self.figure = Figure(figsize=(10, 5), dpi=100, facecolor='#f8f9fa')
         self.canvas = FigureCanvas(self.figure)
         layout.addWidget(self.canvas)
 
@@ -29,10 +30,10 @@ class StatisticsChart(QWidget):
         if not test_results:
             ax = self.figure.add_subplot(111)
             ax.text(0.5, 0.5, 'Нет данных для отображения\nПройдите тест, чтобы увидеть статистику',
-                    ha='center', va='center', fontsize=12, color='#cdd6f4')
+                    ha='center', va='center', fontsize=12, color='#6c757d')
             ax.set_xticks([])
             ax.set_yticks([])
-            ax.set_facecolor('#313244')
+            ax.set_facecolor('#f8f9fa')
             self.canvas.draw()
             return
 
@@ -51,44 +52,55 @@ class StatisticsChart(QWidget):
 
         ax = self.figure.add_subplot(111)
 
+        # Основная линия графика
         ax.plot(attempts, scores, 'o-', linewidth=2, markersize=8,
-                color='#89b4fa', label='Результат теста', markerfacecolor='#b4befe')
+                color='#3498db', label='Результат теста', markerfacecolor='#2980b9')
 
-        ax.axhline(y=passing_threshold, color='#f38ba8', linestyle='--',
+        # Порог прохождения
+        ax.axhline(y=passing_threshold, color='#e74c3c', linestyle='--',
                    linewidth=2, label=f'Порог прохождения ({passing_threshold}%)')
 
+        # Заливка областей
         ax.fill_between(attempts, scores, passing_threshold,
                         where=(np.array(scores) >= passing_threshold),
-                        color='#a6e3a1', alpha=0.3, label='Успешно')
+                        color='#27ae60', alpha=0.3, label='Успешно')
         ax.fill_between(attempts, scores, passing_threshold,
                         where=(np.array(scores) < passing_threshold),
-                        color='#f38ba8', alpha=0.3, label='Не сдано')
+                        color='#e74c3c', alpha=0.3, label='Не сдано')
 
-        ax.set_xlabel('Номер попытки (дата, время)', fontsize=10, fontweight='bold', color='#cdd6f4')
-        ax.set_ylabel('Результат теста, %', fontsize=10, fontweight='bold', color='#cdd6f4')
-        ax.set_title('Динамика результатов тестирования', fontsize=12, fontweight='bold', color='#cdd6f4', pad=15)
+        # Подписи осей
+        ax.set_xlabel('Номер попытки (дата, время)', fontsize=10, fontweight='bold', color='#2c3e50')
+        ax.set_ylabel('Результат теста, %', fontsize=10, fontweight='bold', color='#2c3e50')
+        ax.set_title('Динамика результатов тестирования', fontsize=12, fontweight='bold', color='#2c3e50', pad=15)
 
+        # Настройка осей X
         ax.set_xticks(attempts)
-        ax.set_xticklabels(dates, fontsize=8, color='#cdd6f4')
+        ax.set_xticklabels(dates, fontsize=8, color='#495057')
 
+        # Настройка оси Y
         ax.set_ylim(0, 105)
         ax.set_yticks(range(0, 101, 10))
-        ax.set_yticklabels([f'{i}%' for i in range(0, 101, 10)], color='#cdd6f4')
+        ax.set_yticklabels([f'{i}%' for i in range(0, 101, 10)], color='#495057')
 
+        # Аннотации точек
         for x, y in zip(attempts, scores):
             ax.annotate(f'{y:.0f}%', (x, y), textcoords="offset points",
                         xytext=(0, 10), ha='center', fontsize=8,
-                        bbox=dict(boxstyle="round,pad=0.3", facecolor="#313244", alpha=0.8, color='#89b4fa'))
+                        bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.8, edgecolor='#3498db'))
 
-        ax.legend(loc='lower right', framealpha=0.9, fontsize=9, facecolor='#313244', edgecolor='#89b4fa')
-        ax.grid(True, alpha=0.2, linestyle='--', color='#cdd6f4')
+        # Легенда
+        ax.legend(loc='lower right', framealpha=0.9, fontsize=9, facecolor='white', edgecolor='#dee2e6')
 
-        ax.set_facecolor('#313244')
-        ax.spines['top'].set_color('#45475a')
-        ax.spines['right'].set_color('#45475a')
-        ax.spines['bottom'].set_color('#45475a')
-        ax.spines['left'].set_color('#45475a')
-        ax.tick_params(colors='#cdd6f4')
+        # Сетка
+        ax.grid(True, alpha=0.3, linestyle='--', color='#adb5bd')
+
+        # Оформление
+        ax.set_facecolor('#f8f9fa')
+        ax.spines['top'].set_color('#dee2e6')
+        ax.spines['right'].set_color('#dee2e6')
+        ax.spines['bottom'].set_color('#dee2e6')
+        ax.spines['left'].set_color('#dee2e6')
+        ax.tick_params(colors='#495057')
 
         self.figure.tight_layout()
         self.canvas.draw()
@@ -100,21 +112,24 @@ class StatisticsChart(QWidget):
         ax = self.figure.add_subplot(111)
 
         if colors is None:
-            colors = ['#a6e3a1', '#f38ba8', '#89b4fa', '#f9e2af']
+            colors = ['#27ae60', '#e74c3c', '#3498db', '#f39c12']
 
         wedges, texts, autotexts = ax.pie(data, labels=labels, autopct='%1.1f%%',
                                           startangle=90, colors=colors[:len(data)])
 
+        # Стилизация текста
         for text in texts:
-            text.set_color('#cdd6f4')
+            text.set_color('#2c3e50')
             text.set_fontsize(10)
+            text.set_fontweight('bold')
 
         for autotext in autotexts:
-            autotext.set_color('#1e1e2e')
+            autotext.set_color('white')
             autotext.set_fontweight('bold')
+            autotext.set_fontsize(11)
 
-        ax.set_title(title, fontsize=12, fontweight='bold', color='#cdd6f4', pad=15)
-        ax.set_facecolor('#313244')
+        ax.set_title(title, fontsize=12, fontweight='bold', color='#2c3e50', pad=15)
+        ax.set_facecolor('#f8f9fa')
 
         self.figure.tight_layout()
         self.canvas.draw()
@@ -125,27 +140,41 @@ class StatisticsChart(QWidget):
 
         ax = self.figure.add_subplot(111)
 
-        bars = ax.bar(labels, data, color='#89b4fa', alpha=0.8, edgecolor='#b4befe', linewidth=2)
+        # Создание столбцов
+        bars = ax.bar(labels, data, alpha=0.8, edgecolor='white', linewidth=2)
 
+        # Цветовая индикация
         for i, (bar, val) in enumerate(zip(bars, data)):
             if threshold and val >= threshold:
-                bar.set_color('#a6e3a1')
+                bar.set_color('#27ae60')  # Зеленый для успешных
             elif threshold and val < threshold:
-                bar.set_color('#f38ba8')
+                bar.set_color('#e74c3c')  # Красный для неуспешных
+            else:
+                bar.set_color('#3498db')  # Синий по умолчанию
 
-        ax.set_ylabel(ylabel, fontsize=10, fontweight='bold', color='#cdd6f4')
-        ax.set_title(title, fontsize=12, fontweight='bold', color='#cdd6f4', pad=15)
+        # Подписи осей
+        ax.set_ylabel(ylabel, fontsize=10, fontweight='bold', color='#2c3e50')
+        ax.set_title(title, fontsize=12, fontweight='bold', color='#2c3e50', pad=15)
 
-        ax.set_facecolor('#313244')
-        ax.spines['top'].set_color('#45475a')
-        ax.spines['right'].set_color('#45475a')
-        ax.spines['bottom'].set_color('#45475a')
-        ax.spines['left'].set_color('#45475a')
-        ax.tick_params(colors='#cdd6f4', axis='x', rotation=45, labelsize=9)
+        # Оформление
+        ax.set_facecolor('#f8f9fa')
+        ax.spines['top'].set_color('#dee2e6')
+        ax.spines['right'].set_color('#dee2e6')
+        ax.spines['bottom'].set_color('#dee2e6')
+        ax.spines['left'].set_color('#dee2e6')
+        ax.tick_params(colors='#495057', axis='x', rotation=45, labelsize=9)
 
+        # Добавление значений на столбцы
         for bar, val in zip(bars, data):
             ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 1,
-                    f'{val:.0f}', ha='center', va='bottom', fontsize=9, color='#cdd6f4')
+                    f'{val:.1f}%' if threshold else f'{val:.0f}',
+                    ha='center', va='bottom', fontsize=9, color='#2c3e50', fontweight='bold')
+
+        # Добавление горизонтальной линии порога
+        if threshold:
+            ax.axhline(y=threshold, color='#e74c3c', linestyle='--',
+                      linewidth=2, alpha=0.7, label=f'Порог: {threshold}%')
+            ax.legend(loc='upper right', framealpha=0.9, fontsize=9, facecolor='white')
 
         self.figure.tight_layout()
         self.canvas.draw()

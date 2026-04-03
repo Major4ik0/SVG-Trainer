@@ -1,21 +1,15 @@
-/* Основные стили */
+/* styles.qss - светлая тема */
 QMainWindow {
-    background-color: #1e1e2e;
+    background-color: #f5f5f5;
 }
 
 QLabel {
-    color: #cdd6f4;
+    color: #2c3e50;
 }
 
-QFrame {
-    background-color: #313244;
-    border-radius: 10px;
-}
-
-/* Кнопки */
 QPushButton {
-    background-color: #89b4fa;
-    color: #1e1e2e;
+    background-color: #3498db;
+    color: white;
     border: none;
     border-radius: 8px;
     padding: 8px 16px;
@@ -23,23 +17,18 @@ QPushButton {
 }
 
 QPushButton:hover {
-    background-color: #b4befe;
+    background-color: #2980b9;
 }
 
-QPushButton:pressed {
-    background-color: #6c96d6;
-}
-
-/* Табвиджет */
 QTabWidget::pane {
-    background-color: #313244;
-    border: 2px solid #45475a;
+    background-color: white;
+    border: 2px solid #ddd;
     border-radius: 10px;
 }
 
 QTabBar::tab {
-    background-color: #45475a;
-    color: #cdd6f4;
+    background-color: #ecf0f1;
+    color: #2c3e50;
     padding: 10px 20px;
     margin-right: 5px;
     border-top-left-radius: 8px;
@@ -47,103 +36,77 @@ QTabBar::tab {
 }
 
 QTabBar::tab:selected {
-    background-color: #89b4fa;
-    color: #1e1e2e;
+    background-color: #3498db;
+    color: white;
 }
 
-QTabBar::tab:hover:!selected {
-    background-color: #585b70;
-}
-
-/* ScrollArea */
 QScrollArea {
-    background-color: #313244;
+    background-color: white;
     border: none;
 }
 
-QScrollBar:vertical {
-    background-color: #45475a;
-    width: 10px;
-    border-radius: 5px;
+QFrame {
+    background-color: white;
+    border-radius: 10px;
+    border: 1px solid #ddd;
 }
 
-QScrollBar::handle:vertical {
-    background-color: #89b4fa;
-    border-radius: 5px;
-    min-height: 20px;
-}
-
-QScrollBar::handle:vertical:hover {
-    background-color: #b4befe;
-}
-
-/* Таблицы */
-QTableWidget {
-    background-color: #313244;
-    color: #cdd6f4;
-    gridline-color: #45475a;
-    selection-background-color: #89b4fa;
-    selection-color: #1e1e2e;
-}
-
-QHeaderView::section {
-    background-color: #45475a;
-    color: #cdd6f4;
-    padding: 8px;
-    border: 1px solid #585b70;
-}
-
-/* Поля ввода */
 QLineEdit, QTextEdit {
-    background-color: #45475a;
-    color: #cdd6f4;
-    border: 1px solid #585b70;
+    background-color: white;
+    color: #2c3e50;
+    border: 1px solid #ddd;
     border-radius: 6px;
     padding: 8px;
 }
 
 QLineEdit:focus, QTextEdit:focus {
-    border-color: #89b4fa;
+    border-color: #3498db;
 }
 
-/* Чекбоксы */
+QTableWidget {
+    background-color: white;
+    color: #2c3e50;
+    gridline-color: #ddd;
+    selection-background-color: #3498db;
+}
+
+QHeaderView::section {
+    background-color: #ecf0f1;
+    color: #2c3e50;
+    padding: 8px;
+    border: 1px solid #ddd;
+}
+
 QCheckBox {
-    color: #cdd6f4;
-    spacing: 8px;
+    color: #2c3e50;
+    spacing: 12px;
+    font-size: 14px;
+    padding: 8px;
 }
 
 QCheckBox::indicator {
-    width: 18px;
-    height: 18px;
-    border-radius: 4px;
-    border: 2px solid #89b4fa;
-    background-color: #45475a;
+    width: 20px;
+    height: 20px;
+    border-radius: 5px;
+    border: 2px solid #3498db;
+    background-color: white;
 }
 
 QCheckBox::indicator:checked {
-    background-color: #a6e3a1;
-    border-color: #a6e3a1;
+    background-color: #27ae60;
+    border-color: #27ae60;
 }
 
-/* Прогресс бар */
 QProgressBar {
     border: none;
     border-radius: 10px;
-    background-color: #45475a;
+    background-color: #ecf0f1;
     text-align: center;
-    color: #cdd6f4;
+    color: #2c3e50;
+    font-weight: bold;
 }
 
 QProgressBar::chunk {
-    background-color: #89b4fa;
+    background-color: #3498db;
     border-radius: 10px;
-}
-
-/* Диалоги */
-QDialog {
-    background-color: #313244;
-}
-
-QMessageBox {
-    background-color: #313244;
 }

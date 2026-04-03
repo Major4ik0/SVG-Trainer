@@ -38,6 +38,7 @@ class MainWindow(QMainWindow):
 
         # Загрузка стилей
         self.load_styles()
+        self.set_background_image()
 
         # Инициализация переменных для админских вкладок
         self.admin_users_tab = None
@@ -75,77 +76,147 @@ class MainWindow(QMainWindow):
             self.logoutButton.clicked.connect(self.logout)
 
     def load_styles(self):
-        """Загрузка стилей с улучшенной читаемостью"""
+        """Загрузка стилей с улучшенной читаемостью - светлая тема"""
         style = """
         QMainWindow {
-            background-image: url(background.jpg);
-            background-position: center;
-            background-repeat: no-repeat;
-            background-attachment: fixed;
+            background-color: #f0f0f0;
         }
         QLabel {
-            color: #cdd6f4;
+            color: #2c3e50;
+            background-color: transparent;
         }
         QPushButton {
-            background-color: #89b4fa;
-            color: #1e1e2e;
+            background-color: #3498db;
+            color: white;
             border: none;
             border-radius: 8px;
             padding: 8px 16px;
             font-weight: bold;
+            font-size: 14px;
         }
         QPushButton:hover {
-            background-color: #b4befe;
+            background-color: #2980b9;
+        }
+        QPushButton:pressed {
+            background-color: #1c6ea4;
         }
         QTabWidget::pane {
-            background-color: #313244;
-            border: 2px solid #45475a;
+            background-color: rgba(255, 255, 255, 0.9);
+            border: 2px solid #ddd;
             border-radius: 10px;
         }
         QTabBar::tab {
-            background-color: #45475a;
-            color: #cdd6f4;
+            background-color: #e0e0e0;
+            color: #2c3e50;
             padding: 10px 20px;
             margin-right: 5px;
             border-top-left-radius: 8px;
             border-top-right-radius: 8px;
         }
         QTabBar::tab:selected {
-            background-color: #89b4fa;
-            color: #1e1e2e;
+            background-color: #3498db;
+            color: white;
+        }
+        QTabBar::tab:hover:!selected {
+            background-color: #d0d0d0;
         }
         QScrollArea {
-            background-color: #313244;
+            background-color: transparent;
             border: none;
         }
         QFrame {
-            background-color: #313244;
+            background-color: rgba(255, 255, 255, 0.85);
             border-radius: 10px;
+            border: 1px solid #ddd;
         }
         QLineEdit, QTextEdit {
-            background-color: #45475a;
-            color: #cdd6f4;
-            border: 1px solid #6c7086;
+            background-color: white;
+            color: #2c3e50;
+            border: 1px solid #ddd;
             border-radius: 6px;
             padding: 8px;
         }
         QLineEdit:focus, QTextEdit:focus {
-            border-color: #89b4fa;
+            border-color: #3498db;
         }
         QTableWidget {
-            background-color: #313244;
-            color: #cdd6f4;
-            gridline-color: #45475a;
-            selection-background-color: #89b4fa;
+            background-color: white;
+            color: #2c3e50;
+            gridline-color: #ddd;
+            selection-background-color: #3498db;
+            selection-color: white;
         }
         QHeaderView::section {
-            background-color: #45475a;
-            color: #cdd6f4;
+            background-color: #e0e0e0;
+            color: #2c3e50;
             padding: 8px;
-            border: 1px solid #6c7086;
+            border: 1px solid #ddd;
+        }
+        QCheckBox {
+            color: #2c3e50;
+            spacing: 12px;
+            font-size: 14px;
+            padding: 8px;
+            background-color: transparent;
+        }
+        QCheckBox::indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 5px;
+            border: 2px solid #3498db;
+            background-color: white;
+        }
+        QCheckBox::indicator:checked {
+            background-color: #27ae60;
+            border-color: #27ae60;
+        }
+        QProgressBar {
+            border: none;
+            border-radius: 10px;
+            background-color: #e0e0e0;
+            text-align: center;
+            color: #2c3e50;
+            font-weight: bold;
+        }
+        QProgressBar::chunk {
+            background-color: #3498db;
+            border-radius: 10px;
+        }
+        QMessageBox {
+            background-color: white;
+        }
+        QDialog {
+            background-color: rgba(255, 255, 255, 0.95);
         }
         """
         self.setStyleSheet(style)
+
+    def set_background_image(self):
+        """Установка фонового изображения"""
+        bg_path = "background.jpg"
+        if os.path.exists(bg_path):
+            # Создаем QLabel для фона
+            self.background_label = QLabel(self)
+            pixmap = QPixmap(bg_path)
+            if not pixmap.isNull():
+                # Масштабируем изображение под размер окна
+                scaled_pixmap = pixmap.scaled(self.size(), Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
+                self.background_label.setPixmap(scaled_pixmap)
+                self.background_label.setGeometry(self.rect())
+                self.background_label.lower()  # Отправляем на задний план
+
+                # Делаем центральный виджет прозрачным
+                if self.centralWidget():
+                    self.centralWidget().setAttribute(Qt.WA_TranslucentBackground)
+                    self.centralWidget().setStyleSheet("background-color: transparent;")
+
+                # Устанавливаем прозрачный фон для всех виджетов
+                self.setAttribute(Qt.WA_TranslucentBackground)
+                self.setStyleSheet(self.styleSheet() + " QMainWindow { background-color: transparent; }")
+            else:
+                print("Не удалось загрузить background.jpg - файл поврежден")
+        else:
+            print("Файл background.jpg не найден в текущей директории")
 
     def setup_manual_ui(self):
         # Ручная настройка UI если файл не найден
@@ -304,7 +375,7 @@ class MainWindow(QMainWindow):
                 border-radius: 10px;
             }
             QTabBar::tab {
-                background-color: #45475a;
+                background-color: #f5f5f5;
                 color: #cdd6f4;
                 padding: 8px 16px;
                 border-radius: 5px;
@@ -319,34 +390,34 @@ class MainWindow(QMainWindow):
 
         # Информация о пользователе
         info_text = f"""
-        <div style='background-color: #313244; border-radius: 15px; padding: 20px; text-align: center;'>
-            <h2 style='color: #89b4fa;'>👤 {user['full_name']}</h2>
-            <p><b>Логин:</b> {user['username']}</p>
-            <hr style='border-color: #45475a;'>
+        <div style='background-color: #ffffff; border-radius: 15px; padding: 20px; text-align: center; border: 1px solid #dee2e6;'>
+            <h2 style='color: #2c3e50;'>👤 {user['full_name']}</h2>
+            <p style='color: #495057;'><b>Логин:</b> {user['username']}</p>
+            <hr style='border-color: #dee2e6;'>
             <table style='width: 100%; margin-top: 10px;'>
                 <tr>
-                    <td><b>📝 Всего тестов:</b></td>
-                    <td>{stats['total_tests']}</td>
-                    <td><b>✅ Сдано:</b></td>
-                    <td style='color: #a6e3a1;'>{stats['passed_tests']}</td>
+                    <td style='padding: 8px; color: #495057;'><b>📝 Всего тестов:</b></td>
+                    <td style='padding: 8px; color: #2c3e50;'>{stats['total_tests']}</td>
+                    <td style='padding: 8px; color: #495057;'><b>✅ Сдано:</b></td>
+                    <td style='padding: 8px; color: #27ae60;'>{stats['passed_tests']}</td>
                 </tr>
                 <tr>
-                    <td><b>❌ Не сдано:</b></td>
-                    <td style='color: #f38ba8;'>{stats['failed_tests']}</td>
-                    <td><b>📈 Средний балл:</b></td>
-                    <td>{stats['avg_percent']:.1f}%</td>
+                    <td style='padding: 8px; color: #495057;'><b>❌ Не сдано:</b></td>
+                    <td style='padding: 8px; color: #e74c3c;'>{stats['failed_tests']}</td>
+                    <td style='padding: 8px; color: #495057;'><b>📈 Средний балл:</b></td>
+                    <td style='padding: 8px; color: #2c3e50;'>{stats['avg_percent']:.1f}%</td>
                 </tr>
                 <tr>
-                    <td><b>✅ Верных ответов:</b></td>
-                    <td>{stats['total_correct']}</td>
-                    <td><b>📝 Всего вопросов:</b></td>
-                    <td>{stats['total_questions']}</td>
+                    <td style='padding: 8px; color: #495057;'><b>✅ Верных ответов:</b></td>
+                    <td style='padding: 8px; color: #2c3e50;'>{stats['total_correct']}</td>
+                    <td style='padding: 8px; color: #495057;'><b>📝 Всего вопросов:</b></td>
+                    <td style='padding: 8px; color: #2c3e50;'>{stats['total_questions']}</td>
                 </tr>
                 <tr>
-                    <td><b>🏆 Лучший результат:</b></td>
-                    <td style='color: #a6e3a1;'>{stats['best_result']:.1f}%</td>
-                    <td><b>📉 Худший результат:</b></td>
-                    <td style='color: #f38ba8;'>{stats['worst_result']:.1f}%</td>
+                    <td style='padding: 8px; color: #495057;'><b>🏆 Лучший результат:</b></td>
+                    <td style='padding: 8px; color: #27ae60;'>{stats['best_result']:.1f}%</td>
+                    <td style='padding: 8px; color: #495057;'><b>📉 Худший результат:</b></td>
+                    <td style='padding: 8px; color: #e74c3c;'>{stats['worst_result']:.1f}%</td>
                 </tr>
             </table>
         </div>
@@ -390,7 +461,7 @@ class MainWindow(QMainWindow):
 
         for i, result in enumerate(results, 1):
             card = QFrame()
-            card.setStyleSheet("background-color: #45475a; border-radius: 10px; margin: 5px; padding: 10px;")
+            card.setStyleSheet("background-color: #f5f5f5; border-radius: 10px; margin: 5px; padding: 10px;")
 
             percent = result['score'] / result['total'] * 100
             status = "✅ Сдано" if result['passed'] else "❌ Не сдано"
@@ -654,7 +725,7 @@ class MainWindow(QMainWindow):
             card = QFrame()
             card.setStyleSheet("""
                 QFrame {
-                    background-color: #45475a;
+                    background-color: #f5f5f5;
                     border-radius: 12px;
                     margin: 8px;
                     padding: 15px;
@@ -719,7 +790,7 @@ class MainWindow(QMainWindow):
 
         for mistake in mistakes:
             card = QFrame()
-            card.setStyleSheet("background-color: #45475a; border-radius: 12px; margin: 8px; padding: 15px;")
+            card.setStyleSheet("background-color: #f5f5f5; border-radius: 12px; margin: 8px; padding: 15px;")
 
             card_layout = QVBoxLayout(card)
 
@@ -774,7 +845,7 @@ class MainWindow(QMainWindow):
 
         for result in results[:20]:
             frame = QFrame()
-            frame.setStyleSheet("background-color: #45475a; border-radius: 8px; margin: 5px; padding: 10px;")
+            frame.setStyleSheet("background-color: #f5f5f5; border-radius: 8px; margin: 5px; padding: 10px;")
 
             percent = result['score'] / result['total'] * 100
             status = "✅ Сдано" if result['passed'] else "❌ Не сдано"
@@ -956,7 +1027,7 @@ class MainWindow(QMainWindow):
         image_preview = QLabel()
         image_preview.setAlignment(Qt.AlignCenter)
         image_preview.setMinimumHeight(150)
-        image_preview.setStyleSheet("background-color: #45475a; border-radius: 8px;")
+        image_preview.setStyleSheet("background-color: #f5f5f5; border-radius: 8px;")
         layout.addWidget(image_preview)
 
         self.current_question_image_path = None
@@ -1587,21 +1658,21 @@ class MainWindow(QMainWindow):
             passed_count = sum(1 for r in results if r['passed'])
 
             info_text = f"""
-            <div style='background-color: #2c2c3e; border-radius: 15px; padding: 20px;'>
-                <h2 style='color: #e94560;'>👤 {user['full_name']}</h2>
-                <p>📝 <b>Логин:</b> {user['username']}</p>
-                <p>📊 <b>Всего тестов:</b> {len(results)}</p>
-                <p>✅ <b>Правильных ответов:</b> {total_score} из {total_questions}</p>
-                <p>📈 <b>Средний результат:</b> {avg_percent:.1f}%</p>
-                <p>🏆 <b>Успешно сдано (≥80%):</b> {passed_count}</p>
+            <div style='background-color: #ffffff; border-radius: 15px; padding: 20px; border: 1px solid #dee2e6;'>
+                <h2 style='color: #2c3e50;'>👤 {user['full_name']}</h2>
+                <p style='color: #495057;'>📝 <b>Логин:</b> {user['username']}</p>
+                <p style='color: #495057;'>📊 <b>Всего тестов:</b> {len(results)}</p>
+                <p style='color: #495057;'>✅ <b>Правильных ответов:</b> {total_score} из {total_questions}</p>
+                <p style='color: #495057;'>📈 <b>Средний результат:</b> {avg_percent:.1f}%</p>
+                <p style='color: #495057;'>🏆 <b>Успешно сдано (≥80%):</b> {passed_count}</p>
             </div>
             """
         else:
             info_text = f"""
-            <div style='background-color: #2c2c3e; border-radius: 15px; padding: 20px;'>
-                <h2 style='color: #e94560;'>👤 {user['full_name']}</h2>
-                <p>📝 <b>Логин:</b> {user['username']}</p>
-                <p style='color: #ffa500;'>⚠️ Пользователь еще не проходил тесты</p>
+            <div style='background-color: #ffffff; border-radius: 15px; padding: 20px; border: 1px solid #dee2e6;'>
+                <h2 style='color: #2c3e50;'>👤 {user['full_name']}</h2>
+                <p style='color: #495057;'>📝 <b>Логин:</b> {user['username']}</p>
+                <p style='color: #f39c12;'>⚠️ Пользователь еще не проходил тесты</p>
             </div>
             """
 
@@ -1853,7 +1924,7 @@ class MainWindow(QMainWindow):
         # Информационная карточка
         self.statsInfoLabel = QLabel()
         self.statsInfoLabel.setWordWrap(True)
-        self.statsInfoLabel.setStyleSheet("background-color: #313244; padding: 15px; border-radius: 10px;")
+        self.statsInfoLabel.setStyleSheet("background-color: #f5f5f5; padding: 15px; border-radius: 10px;")
         self.statsInfoLabel.setMinimumHeight(200)
         general_layout.addWidget(self.statsInfoLabel)
 
@@ -1913,46 +1984,46 @@ class MainWindow(QMainWindow):
         # Общая статистика
         if stats['total_tests'] > 0:
             info_text = f"""
-            <div style='text-align: center;'>
-                <h2 style='color: #89b4fa;'>📊 Статистика пользователя</h2>
-                <p style='font-size: 16px;'><b>{user['full_name']}</b> ({user['username']})</p>
-                <hr style='border-color: #45475a;'>
+            <div style='text-align: center; background-color: #ffffff; border-radius: 15px; padding: 20px;'>
+                <h2 style='color: #2c3e50;'>📊 Статистика пользователя</h2>
+                <p style='font-size: 16px; color: #2c3e50;'><b>{user['full_name']}</b> ({user['username']})</p>
+                <hr style='border-color: #dee2e6;'>
                 <table style='width: 100%; margin-top: 10px;'>
                     <tr>
-                        <td style='padding: 8px;'><b>📝 Всего тестов:</b></td>
-                        <td style='padding: 8px;'>{stats['total_tests']}</td>
-                        <td style='padding: 8px;'><b>✅ Успешно сдано:</b></td>
-                        <td style='padding: 8px; color: #a6e3a1;'>{stats['passed_tests']}</td>
+                        <td style='padding: 8px; color: #495057;'><b>📝 Всего тестов:</b></td>
+                        <td style='padding: 8px; color: #2c3e50;'>{stats['total_tests']}</td>
+                        <td style='padding: 8px; color: #495057;'><b>✅ Успешно сдано:</b></td>
+                        <td style='padding: 8px; color: #27ae60;'>{stats['passed_tests']}</td>
                     </tr>
                     <tr>
-                        <td style='padding: 8px;'><b>❌ Не сдано:</b></td>
-                        <td style='padding: 8px; color: #f38ba8;'>{stats['failed_tests']}</td>
-                        <td style='padding: 8px;'><b>📈 Средний балл:</b></td>
-                        <td style='padding: 8px;'>{stats['avg_percent']:.1f}%</td>
+                        <td style='padding: 8px; color: #495057;'><b>❌ Не сдано:</b></td>
+                        <td style='padding: 8px; color: #e74c3c;'>{stats['failed_tests']}</td>
+                        <td style='padding: 8px; color: #495057;'><b>📈 Средний балл:</b></td>
+                        <td style='padding: 8px; color: #2c3e50;'>{stats['avg_percent']:.1f}%</td>
                     </tr>
                     <tr>
-                        <td style='padding: 8px;'><b>✅ Всего верных ответов:</b></td>
-                        <td style='padding: 8px;'>{stats['total_correct']}</td>
-                        <td style='padding: 8px;'><b>📝 Всего вопросов:</b></td>
-                        <td style='padding: 8px;'>{stats['total_questions']}</td>
+                        <td style='padding: 8px; color: #495057;'><b>✅ Всего верных ответов:</b></td>
+                        <td style='padding: 8px; color: #2c3e50;'>{stats['total_correct']}</td>
+                        <td style='padding: 8px; color: #495057;'><b>📝 Всего вопросов:</b></td>
+                        <td style='padding: 8px; color: #2c3e50;'>{stats['total_questions']}</td>
                     </tr>
                     <tr>
-                        <td style='padding: 8px;'><b>🏆 Лучший результат:</b></td>
-                        <td style='padding: 8px; color: #a6e3a1;'>{stats['best_result']:.1f}%</td>
-                        <td style='padding: 8px;'><b>📉 Худший результат:</b></td>
-                        <td style='padding: 8px; color: #f38ba8;'>{stats['worst_result']:.1f}%</td>
+                        <td style='padding: 8px; color: #495057;'><b>🏆 Лучший результат:</b></td>
+                        <td style='padding: 8px; color: #27ae60;'>{stats['best_result']:.1f}%</td>
+                        <td style='padding: 8px; color: #495057;'><b>📉 Худший результат:</b></td>
+                        <td style='padding: 8px; color: #e74c3c;'>{stats['worst_result']:.1f}%</td>
                     </tr>
                 </table>
             </div>
             """
         else:
             info_text = f"""
-            <div style='text-align: center;'>
-                <h2 style='color: #89b4fa;'>📊 Статистика пользователя</h2>
-                <p style='font-size: 16px;'><b>{user['full_name']}</b> ({user['username']})</p>
-                <hr style='border-color: #45475a;'>
-                <p style='color: #f9e2af; padding: 20px;'>⚠️ У вас пока нет пройденных тестов</p>
-                <p>Пройдите тест в разделе "Тестирование", чтобы увидеть статистику</p>
+            <div style='text-align: center; background-color: #ffffff; border-radius: 15px; padding: 20px;'>
+                <h2 style='color: #2c3e50;'>📊 Статистика пользователя</h2>
+                <p style='font-size: 16px; color: #2c3e50;'><b>{user['full_name']}</b> ({user['username']})</p>
+                <hr style='border-color: #dee2e6;'>
+                <p style='color: #f39c12; padding: 20px;'>⚠️ У вас пока нет пройденных тестов</p>
+                <p style='color: #6c757d;'>Пройдите тест в разделе "Тестирование", чтобы увидеть статистику</p>
             </div>
             """
 
@@ -2099,27 +2170,27 @@ class MainWindow(QMainWindow):
         avg_system_percent = (total_correct / total_questions * 100) if total_questions > 0 else 0
 
         info_text = f"""
-        <div style='text-align: center;'>
-            <h2 style='color: #89b4fa;'>📊 Общая статистика системы</h2>
-            <hr style='border-color: #45475a;'>
+        <div style='text-align: center; background-color: #ffffff; border-radius: 15px; padding: 20px;'>
+            <h2 style='color: #2c3e50;'>📊 Общая статистика системы</h2>
+            <hr style='border-color: #dee2e6;'>
             <table style='width: 100%; margin-top: 10px;'>
                 <tr>
-                    <td style='padding: 8px;'><b>👥 Всего пользователей:</b></td>
-                    <td style='padding: 8px;'>{stats['total_users']}</td>
-                    <td style='padding: 8px;'><b>❓ Всего вопросов:</b></td>
-                    <td style='padding: 8px;'>{stats['total_questions']}</td>
+                    <td style='padding: 8px; color: #495057;'><b>👥 Всего пользователей:</b></td>
+                    <td style='padding: 8px; color: #2c3e50;'>{stats['total_users']}</td>
+                    <td style='padding: 8px; color: #495057;'><b>❓ Всего вопросов:</b></td>
+                    <td style='padding: 8px; color: #2c3e50;'>{stats['total_questions']}</td>
                 </tr>
                 <tr>
-                    <td style='padding: 8px;'><b>📝 Всего тестов:</b></td>
-                    <td style='padding: 8px;'>{total_tests}</td>
-                    <td style='padding: 8px;'><b>✅ Всего верных ответов:</b></td>
-                    <td style='padding: 8px;'>{total_correct}/{total_questions}</td>
+                    <td style='padding: 8px; color: #495057;'><b>📝 Всего тестов:</b></td>
+                    <td style='padding: 8px; color: #2c3e50;'>{total_tests}</td>
+                    <td style='padding: 8px; color: #495057;'><b>✅ Всего верных ответов:</b></td>
+                    <td style='padding: 8px; color: #2c3e50;'>{total_correct}/{total_questions}</td>
                 </tr>
                 <tr>
-                    <td style='padding: 8px;'><b>📈 Средний балл системы:</b></td>
-                    <td style='padding: 8px;'>{avg_system_percent:.1f}%</td>
-                    <td style='padding: 8px;'><b>🎯 Успешных тестов:</b></td>
-                    <td style='padding: 8px;'>{stats['passed_percent']:.1f}%</td>
+                    <td style='padding: 8px; color: #495057;'><b>📈 Средний балл системы:</b></td>
+                    <td style='padding: 8px; color: #2c3e50;'>{avg_system_percent:.1f}%</td>
+                    <td style='padding: 8px; color: #495057;'><b>🎯 Успешных тестов:</b></td>
+                    <td style='padding: 8px; color: #2c3e50;'>{stats['passed_percent']:.1f}%</td>
                 </tr>
             </table>
         </div>

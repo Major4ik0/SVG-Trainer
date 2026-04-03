@@ -60,7 +60,7 @@
        <item>
         <widget class="QLabel" name="titleLabel">
          <property name="text">
-          <string>🎖️ СВГ-Тренажер</string>
+          <string>СВГ-Тренажер</string>
          </property>
          <property name="font">
           <font>

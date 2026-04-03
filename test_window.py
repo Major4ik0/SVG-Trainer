@@ -37,18 +37,17 @@ class TestWindow(QDialog):
         self.apply_modern_style()
 
     def apply_modern_style(self):
-        """Современный стиль для окна тестирования"""
+        """Современный стиль для окна тестирования - светлая тема"""
         self.setStyleSheet("""
             QDialog {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 #1a1a2e, stop:1 #16213e);
+                background-color: #f8f9fa;
             }
             QLabel {
-                color: #e2e2e2;
+                color: #2c3e50;
+                background-color: transparent;
             }
             QPushButton {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #e94560, stop:1 #c73e54);
+                background-color: #3498db;
                 color: white;
                 border: none;
                 border-radius: 12px;
@@ -58,115 +57,107 @@ class TestWindow(QDialog):
                 font-family: 'Segoe UI';
             }
             QPushButton:hover {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #ff6b6b, stop:1 #e94560);
+                background-color: #2980b9;
             }
             QPushButton:disabled {
-                background: #45475a;
-                color: #6c7086;
-            }
-            QPushButton#primaryButton {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #0f3460, stop:1 #0a2647);
-            }
-            QPushButton#primaryButton:hover {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #1a4a7a, stop:1 #0f3460);
+                background-color: #ced4da;
+                color: #6c757d;
             }
             QProgressBar {
                 border: none;
                 border-radius: 10px;
-                background-color: #2c2c3e;
+                background-color: #e9ecef;
                 text-align: center;
-                color: #e2e2e2;
+                color: #2c3e50;
                 font-weight: bold;
                 height: 25px;
             }
             QProgressBar::chunk {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #e94560, stop:1 #ff6b6b);
+                background-color: #3498db;
                 border-radius: 10px;
             }
             QRadioButton {
-                color: #e2e2e2;
+                color: #2c3e50;
                 spacing: 15px;
                 font-size: 14px;
                 padding: 12px;
-                background-color: #2c2c3e;
+                background-color: white;
                 border-radius: 10px;
                 margin: 5px;
+                border: 1px solid #dee2e6;
             }
             QRadioButton::indicator {
                 width: 18px;
                 height: 18px;
                 border-radius: 9px;
-                border: 2px solid #e94560;
-                background-color: #1a1a2e;
+                border: 2px solid #3498db;
+                background-color: white;
             }
             QRadioButton::indicator:checked {
-                background-color: #e94560;
-                border-color: #e94560;
+                background-color: #3498db;
+                border-color: #3498db;
             }
             QRadioButton:hover {
-                background-color: #3a3a4e;
+                background-color: #e9ecef;
             }
             QCheckBox {
-                color: #e2e2e2;
+                color: #2c3e50;
                 spacing: 15px;
                 font-size: 14px;
                 padding: 12px;
-                background-color: #2c2c3e;
+                background-color: white;
                 border-radius: 10px;
                 margin: 5px;
+                border: 1px solid #dee2e6;
             }
             QCheckBox::indicator {
                 width: 20px;
                 height: 20px;
                 border-radius: 5px;
-                border: 2px solid #e94560;
-                background-color: #1a1a2e;
+                border: 2px solid #3498db;
+                background-color: white;
             }
             QCheckBox::indicator:checked {
-                background-color: #4caf50;
-                border-color: #4caf50;
+                background-color: #27ae60;
+                border-color: #27ae60;
             }
             QCheckBox:hover {
-                background-color: #3a3a4e;
+                background-color: #e9ecef;
             }
             QScrollArea {
                 background-color: transparent;
                 border: none;
             }
             QScrollBar:vertical {
-                background: #2c2c3e;
+                background: #e9ecef;
                 width: 12px;
                 border-radius: 6px;
             }
             QScrollBar::handle:vertical {
-                background: #e94560;
+                background: #3498db;
                 border-radius: 6px;
             }
             QScrollBar::handle:vertical:hover {
-                background: #ff6b6b;
+                background: #2980b9;
             }
             QFrame#questionCard {
-                background-color: #2c2c3e;
+                background-color: white;
                 border-radius: 20px;
-                border: 2px solid #e94560;
+                border: 2px solid #3498db;
             }
             QFrame#feedbackCard {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #2c2c3e, stop:1 #3a3a4e);
+                background-color: #f8f9fa;
                 border-radius: 15px;
-                border-left: 5px solid #e94560;
+                border-left: 5px solid #3498db;
                 padding: 15px;
             }
             QLabel#questionNumber {
-                background-color: #e94560;
+                background-color: #3498db;
                 border-radius: 15px;
                 padding: 5px 15px;
                 font-size: 16px;
                 font-weight: bold;
+                color: white;
             }
         """)
 
