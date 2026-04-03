@@ -13,7 +13,7 @@ permissions:
 jobs:
   build-win7-x64:
     name: Build SVG-Trainer x64 (Win7/10/11)
-    runs-on: windows-2019 # Используем windows-2019 для лучшей совместимости с Win7
+    runs-on: windows-latest # Используем windows-2019 для лучшей совместимости с Win7
 
     steps:
       - name: Checkout code
@@ -82,7 +82,7 @@ jobs:
 
   build-win7-x86:
     name: Build SVG-Trainer x86 (Win7/10/11)
-    runs-on: windows-2019
+    runs-on: windows-latest
 
     steps:
       - name: Checkout code
