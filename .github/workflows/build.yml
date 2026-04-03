@@ -12,7 +12,7 @@ permissions:
 jobs:
   build-win7-x64:
     name: Build SVG-Trainer x64 (Win7/10/11)
-    runs-on: windows-2019
+    runs-on: windows-latest
 
     steps:
       - name: Checkout code
@@ -38,13 +38,12 @@ jobs:
           Remove-Item -Recurse -Force dist, build -ErrorAction SilentlyContinue
           
           # Собираем с ресурсами (все файлы упакованы внутрь)
-          pyinstaller --onefile --windowed --icon=icon.ico --name="$exe_name" --noupx --clean `
+          pyinstaller --onefile --windowed --name="$exe_name" --noupx --clean `
             --hidden-import=PyQt5 `
             --hidden-import=PyQt5.QtCore `
             --hidden-import=PyQt5.QtGui `
             --hidden-import=PyQt5.QtWidgets `
             --add-data="styles.qss;." `
-            --add-data="icon.ico;." `
             main.py database.py auth_manager.py login_dialog.py main_window.py statistics_widget.py test_window.py
           
           if (Test-Path "dist/$exe_name.exe") {
@@ -71,7 +70,7 @@ jobs:
 
   build-win7-x86:
     name: Build SVG-Trainer x86 (Win7/10/11)
-    runs-on: windows-2019
+    runs-on: windows-latest
 
     steps:
       - name: Checkout code
@@ -96,13 +95,12 @@ jobs:
           $exe_name = "SVGTrainer_x86"
           Remove-Item -Recurse -Force dist, build -ErrorAction SilentlyContinue
           
-          pyinstaller --onefile --windowed --icon=icon.ico --name="$exe_name" --noupx --clean `
+          pyinstaller --onefile --windowed --name="$exe_name" --noupx --clean `
             --hidden-import=PyQt5 `
             --hidden-import=PyQt5.QtCore `
             --hidden-import=PyQt5.QtGui `
             --hidden-import=PyQt5.QtWidgets `
             --add-data="styles.qss;." `
-            --add-data="icon.ico;." `
             main.py database.py auth_manager.py login_dialog.py main_window.py statistics_widget.py test_window.py
           
           if (Test-Path "dist/$exe_name.exe") {
