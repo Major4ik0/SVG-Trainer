@@ -399,31 +399,54 @@ class TestWindow(QDialog):
 
         bottom_layout.addStretch()
 
-        # Кнопка "Проверить" / "Далее"
-        self.action_button = QPushButton("ПРОВЕРИТЬ ОТВЕТ ►" if self.training_mode else "ДАЛЕЕ ►")
+        # Кнопка "Проверить" / "Далее" - для учебного режима зеленая, для теста синяя
+        if self.training_mode:
+            self.action_button = QPushButton("✓ ПРОВЕРИТЬ ОТВЕТ")
+            self.action_button.setStyleSheet("""
+                QPushButton {
+                    background-color: #27ae60;
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    padding: 10px 20px;
+                    font-size: 13px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #219a52;
+                }
+                QPushButton:disabled {
+                    background-color: #ced4da;
+                    color: #6c757d;
+                }
+            """)
+            self.action_button.clicked.connect(self.check_answer)
+        else:
+            self.action_button = QPushButton("ДАЛЕЕ ►")
+            self.action_button.setStyleSheet("""
+                QPushButton {
+                    background-color: #3498db;
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    padding: 10px 20px;
+                    font-size: 13px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #2980b9;
+                }
+                QPushButton:disabled {
+                    background-color: #ced4da;
+                    color: #6c757d;
+                }
+            """)
+            self.action_button.clicked.connect(self.next_question)
+
         self.action_button.setMinimumWidth(160)
-        self.action_button.setStyleSheet("""
-            QPushButton {
-                background-color: #27ae60;
-                color: white;
-                border: none;
-                border-radius: 8px;
-                padding: 10px 20px;
-                font-size: 13px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #219a52;
-            }
-            QPushButton:disabled {
-                background-color: #ced4da;
-                color: #6c757d;
-            }
-        """)
-        self.action_button.clicked.connect(self.check_answer if self.training_mode else self.next_question)
         bottom_layout.addWidget(self.action_button)
 
-        # Кнопка "Продолжить"
+        # Кнопка "Продолжить" (для учебного режима)
         self.continue_button = QPushButton("СЛЕДУЮЩИЙ ВОПРОС ►►")
         self.continue_button.setMinimumWidth(180)
         self.continue_button.setVisible(False)
@@ -512,6 +535,19 @@ class TestWindow(QDialog):
         self.action_button.setVisible(True)
         self.continue_button.setVisible(False)
 
+        # Сброс стилей контейнеров
+        for i in range(4):
+            # Сброс радио-контейнеров
+            radio, radio_label, radio_container = self.radio_buttons[i]
+            radio_container.setStyleSheet("background-color: #f8f9fa; border-radius: 10px; border: 1px solid #dee2e6;")
+            radio_label.setStyleSheet("color: #2c3e50; font-size: 13px;")
+
+            # Сброс чекбокс-контейнеров
+            checkbox, checkbox_label, checkbox_container = self.checkboxes[i]
+            checkbox_container.setStyleSheet(
+                "background-color: #f8f9fa; border-radius: 10px; border: 1px solid #dee2e6;")
+            checkbox_label.setStyleSheet("color: #2c3e50; font-size: 13px;")
+
         # Восстановление сохраненного ответа
         if self.answers[idx] is not None and self.answered[idx]:
             user_mask = self.answers[idx]['selected_mask']
@@ -527,6 +563,47 @@ class TestWindow(QDialog):
                         radio.setChecked(True)
 
             if self.training_mode:
+                # Восстанавливаем подсветку для уже отвеченного вопроса
+                correct_mask = q['correct_mask']
+                is_correct = self.answers[idx]['correct']
+                for i in range(4):
+                    is_correct_option = (correct_mask >> i) & 1
+                    is_user_selected = (user_mask >> i) & 1
+
+                    if is_multiple:
+                        checkbox, checkbox_label, checkbox_container = self.checkboxes[i]
+                        if is_correct_option:
+                            checkbox_container.setStyleSheet("""
+                                background-color: #d4edda;
+                                border-radius: 10px;
+                                border: 2px solid #27ae60;
+                            """)
+                            checkbox_label.setStyleSheet("color: #27ae60; font-weight: bold; font-size: 13px;")
+                        elif not is_correct and is_user_selected:
+                            checkbox_container.setStyleSheet("""
+                                background-color: #f8d7da;
+                                border-radius: 10px;
+                                border: 2px solid #e74c3c;
+                            """)
+                            checkbox_label.setStyleSheet(
+                                "color: #e74c3c; text-decoration: line-through; font-size: 13px;")
+                    else:
+                        radio, radio_label, radio_container = self.radio_buttons[i]
+                        if is_correct_option:
+                            radio_container.setStyleSheet("""
+                                background-color: #d4edda;
+                                border-radius: 10px;
+                                border: 2px solid #27ae60;
+                            """)
+                            radio_label.setStyleSheet("color: #27ae60; font-weight: bold; font-size: 13px;")
+                        elif not is_correct and is_user_selected:
+                            radio_container.setStyleSheet("""
+                                background-color: #f8d7da;
+                                border-radius: 10px;
+                                border: 2px solid #e74c3c;
+                            """)
+                            radio_label.setStyleSheet("color: #e74c3c; text-decoration: line-through; font-size: 13px;")
+
                 self.show_feedback_only()
 
         # Навигация
@@ -579,115 +656,48 @@ class TestWindow(QDialog):
         }
         self.answered[self.current_index] = True
 
-        # Показываем обратную связь
-        self.show_feedback()
-
-        # Блокируем элементы выбора
-        if is_multiple:
-            for i in range(4):
-                checkbox, _, container = self.checkboxes[i]
-                checkbox.setEnabled(False)
-                if not self.show_feedback_colors:
-                    self.show_feedback_colors_for_answer(i, correct_mask, user_mask, is_multiple, correct)
-        else:
-            for i in range(4):
-                radio, _, container = self.radio_buttons[i]
-                radio.setEnabled(False)
-                if not self.show_feedback_colors:
-                    self.show_feedback_colors_for_answer(i, correct_mask, user_mask, is_multiple, correct)
-
-        # Меняем кнопки
-        self.action_button.setVisible(False)
-        self.continue_button.setVisible(True)
-
-    def show_feedback_colors_for_answer(self, i, correct_mask, user_mask, is_multiple, is_correct):
-        """Подсветка вариантов ответа"""
-        is_correct_option = (correct_mask >> i) & 1
-        is_user_selected = (user_mask >> i) & 1
-
-        if is_multiple:
-            checkbox, label, container = self.checkboxes[i]
-            if is_correct_option:
-                container.setStyleSheet("""
-                    background-color: #d4edda;
-                    border-radius: 10px;
-                    border: 2px solid #27ae60;
-                """)
-                label.setStyleSheet("color: #27ae60; font-weight: bold; font-size: 13px;")
-            elif not is_correct and is_user_selected:
-                container.setStyleSheet("""
-                    background-color: #f8d7da;
-                    border-radius: 10px;
-                    border: 2px solid #e74c3c;
-                """)
-                label.setStyleSheet("color: #e74c3c; text-decoration: line-through; font-size: 13px;")
-        else:
-            radio, label, container = self.radio_buttons[i]
-            if is_correct_option:
-                container.setStyleSheet("""
-                    background-color: #d4edda;
-                    border-radius: 10px;
-                    border: 2px solid #27ae60;
-                """)
-                label.setStyleSheet("color: #27ae60; font-weight: bold; font-size: 13px;")
-            elif not is_correct and is_user_selected:
-                container.setStyleSheet("""
-                    background-color: #f8d7da;
-                    border-radius: 10px;
-                    border: 2px solid #e74c3c;
-                """)
-                label.setStyleSheet("color: #e74c3c; text-decoration: line-through; font-size: 13px;")
-
-    def show_feedback(self):
-        """Показ обратной связи после ответа"""
-        q = self.questions[self.current_index]
-        answer = self.answers[self.current_index]
-        correct_mask = answer['correct_mask']
-        user_mask = answer['selected_mask']
-        is_correct = answer['correct']
-        correct_count = bin(correct_mask).count("1")
-        is_multiple = correct_count > 1
-
         # Подсветка вариантов
         for i in range(4):
             is_correct_option = (correct_mask >> i) & 1
             is_user_selected = (user_mask >> i) & 1
 
             if is_multiple:
-                checkbox, label, container = self.checkboxes[i]
+                checkbox, checkbox_label, checkbox_container = self.checkboxes[i]
+                checkbox.setEnabled(False)
                 if is_correct_option:
-                    container.setStyleSheet("""
+                    checkbox_container.setStyleSheet("""
                         background-color: #d4edda;
                         border-radius: 10px;
                         border: 2px solid #27ae60;
                     """)
-                    label.setStyleSheet("color: #27ae60; font-weight: bold; font-size: 13px;")
-                elif not is_correct and is_user_selected:
-                    container.setStyleSheet("""
+                    checkbox_label.setStyleSheet("color: #27ae60; font-weight: bold; font-size: 13px;")
+                elif not correct and is_user_selected:
+                    checkbox_container.setStyleSheet("""
                         background-color: #f8d7da;
                         border-radius: 10px;
                         border: 2px solid #e74c3c;
                     """)
-                    label.setStyleSheet("color: #e74c3c; text-decoration: line-through; font-size: 13px;")
+                    checkbox_label.setStyleSheet("color: #e74c3c; text-decoration: line-through; font-size: 13px;")
             else:
-                radio, label, container = self.radio_buttons[i]
+                radio, radio_label, radio_container = self.radio_buttons[i]
+                radio.setEnabled(False)
                 if is_correct_option:
-                    container.setStyleSheet("""
+                    radio_container.setStyleSheet("""
                         background-color: #d4edda;
                         border-radius: 10px;
                         border: 2px solid #27ae60;
                     """)
-                    label.setStyleSheet("color: #27ae60; font-weight: bold; font-size: 13px;")
-                elif not is_correct and is_user_selected:
-                    container.setStyleSheet("""
+                    radio_label.setStyleSheet("color: #27ae60; font-weight: bold; font-size: 13px;")
+                elif not correct and is_user_selected:
+                    radio_container.setStyleSheet("""
                         background-color: #f8d7da;
                         border-radius: 10px;
                         border: 2px solid #e74c3c;
                     """)
-                    label.setStyleSheet("color: #e74c3c; text-decoration: line-through; font-size: 13px;")
+                    radio_label.setStyleSheet("color: #e74c3c; text-decoration: line-through; font-size: 13px;")
 
         # Формируем текст обратной связи
-        if is_correct:
+        if correct:
             feedback_text = f"""
             <div style='text-align: center;'>
                 <h3 style='color: #27ae60; margin: 0;'>✅ ПРАВИЛЬНО!</h3>
@@ -712,53 +722,16 @@ class TestWindow(QDialog):
         self.feedback_label.setText(feedback_text)
         self.feedback_card.setVisible(True)
 
+        # Меняем кнопки
+        self.action_button.setVisible(False)
+        self.continue_button.setVisible(True)
+
     def show_feedback_only(self):
-        """Показ обратной связи для уже отвеченных вопросов"""
+        """Показ обратной связи для уже отвеченных вопросов (без изменения состояния)"""
         q = self.questions[self.current_index]
         answer = self.answers[self.current_index]
-        correct_mask = answer['correct_mask']
-        user_mask = answer['selected_mask']
         is_correct = answer['correct']
-        correct_count = bin(correct_mask).count("1")
-        is_multiple = correct_count > 1
-
-        # Подсветка вариантов
-        for i in range(4):
-            is_correct_option = (correct_mask >> i) & 1
-            is_user_selected = (user_mask >> i) & 1
-
-            if is_multiple:
-                checkbox, label, container = self.checkboxes[i]
-                if is_correct_option:
-                    container.setStyleSheet("""
-                        background-color: #d4edda;
-                        border-radius: 10px;
-                        border: 2px solid #27ae60;
-                    """)
-                    label.setStyleSheet("color: #27ae60; font-weight: bold; font-size: 13px;")
-                elif not is_correct and is_user_selected:
-                    container.setStyleSheet("""
-                        background-color: #f8d7da;
-                        border-radius: 10px;
-                        border: 2px solid #e74c3c;
-                    """)
-                    label.setStyleSheet("color: #e74c3c; text-decoration: line-through; font-size: 13px;")
-            else:
-                radio, label, container = self.radio_buttons[i]
-                if is_correct_option:
-                    container.setStyleSheet("""
-                        background-color: #d4edda;
-                        border-radius: 10px;
-                        border: 2px solid #27ae60;
-                    """)
-                    label.setStyleSheet("color: #27ae60; font-weight: bold; font-size: 13px;")
-                elif not is_correct and is_user_selected:
-                    container.setStyleSheet("""
-                        background-color: #f8d7da;
-                        border-radius: 10px;
-                        border: 2px solid #e74c3c;
-                    """)
-                    label.setStyleSheet("color: #e74c3c; text-decoration: line-through; font-size: 13px;")
+        correct_mask = answer['correct_mask']
 
         if is_correct:
             feedback_text = f"""

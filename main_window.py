@@ -30,15 +30,10 @@ class MainWindow(QMainWindow):
         ui_path = os.path.join(os.path.dirname(__file__), 'design.ui')
         if os.path.exists(ui_path):
             loadUi(ui_path, self)
-        else:
-            self.setup_manual_ui()
 
         # Подключаем сигналы для кнопок из UI
         self.connect_signals()
 
-        # Загрузка стилей
-        self.load_styles()
-        self.set_background_image()
 
         # Инициализация переменных для админских вкладок
         self.admin_users_tab = None
@@ -74,251 +69,6 @@ class MainWindow(QMainWindow):
 
         if hasattr(self, 'logoutButton'):
             self.logoutButton.clicked.connect(self.logout)
-
-    def load_styles(self):
-        """Загрузка стилей с улучшенной читаемостью - светлая тема"""
-        style = """
-        QMainWindow {
-            background-color: #f0f0f0;
-        }
-        QLabel {
-            color: #2c3e50;
-            background-color: transparent;
-        }
-        QPushButton {
-            background-color: #3498db;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 8px 16px;
-            font-weight: bold;
-            font-size: 14px;
-        }
-        QPushButton:hover {
-            background-color: #2980b9;
-        }
-        QPushButton:pressed {
-            background-color: #1c6ea4;
-        }
-        QTabWidget::pane {
-            background-color: rgba(255, 255, 255, 0.9);
-            border: 2px solid #ddd;
-            border-radius: 10px;
-        }
-        QTabBar::tab {
-            background-color: #e0e0e0;
-            color: #2c3e50;
-            padding: 10px 20px;
-            margin-right: 5px;
-            border-top-left-radius: 8px;
-            border-top-right-radius: 8px;
-        }
-        QTabBar::tab:selected {
-            background-color: #3498db;
-            color: white;
-        }
-        QTabBar::tab:hover:!selected {
-            background-color: #d0d0d0;
-        }
-        QScrollArea {
-            background-color: transparent;
-            border: none;
-        }
-        QFrame {
-            background-color: rgba(255, 255, 255, 0.85);
-            border-radius: 10px;
-            border: 1px solid #ddd;
-        }
-        QLineEdit, QTextEdit {
-            background-color: white;
-            color: #2c3e50;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            padding: 8px;
-        }
-        QLineEdit:focus, QTextEdit:focus {
-            border-color: #3498db;
-        }
-        QTableWidget {
-            background-color: white;
-            color: #2c3e50;
-            gridline-color: #ddd;
-            selection-background-color: #3498db;
-            selection-color: white;
-        }
-        QHeaderView::section {
-            background-color: #e0e0e0;
-            color: #2c3e50;
-            padding: 8px;
-            border: 1px solid #ddd;
-        }
-        QCheckBox {
-            color: #2c3e50;
-            spacing: 12px;
-            font-size: 14px;
-            padding: 8px;
-            background-color: transparent;
-        }
-        QCheckBox::indicator {
-            width: 20px;
-            height: 20px;
-            border-radius: 5px;
-            border: 2px solid #3498db;
-            background-color: white;
-        }
-        QCheckBox::indicator:checked {
-            background-color: #27ae60;
-            border-color: #27ae60;
-        }
-        QProgressBar {
-            border: none;
-            border-radius: 10px;
-            background-color: #e0e0e0;
-            text-align: center;
-            color: #2c3e50;
-            font-weight: bold;
-        }
-        QProgressBar::chunk {
-            background-color: #3498db;
-            border-radius: 10px;
-        }
-        QMessageBox {
-            background-color: white;
-        }
-        QDialog {
-            background-color: rgba(255, 255, 255, 0.95);
-        }
-        """
-        self.setStyleSheet(style)
-
-    def set_background_image(self):
-        """Установка фонового изображения"""
-        bg_path = "background.jpg"
-        if os.path.exists(bg_path):
-            # Создаем QLabel для фона
-            self.background_label = QLabel(self)
-            pixmap = QPixmap(bg_path)
-            if not pixmap.isNull():
-                # Масштабируем изображение под размер окна
-                scaled_pixmap = pixmap.scaled(self.size(), Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
-                self.background_label.setPixmap(scaled_pixmap)
-                self.background_label.setGeometry(self.rect())
-                self.background_label.lower()  # Отправляем на задний план
-
-                # Делаем центральный виджет прозрачным
-                if self.centralWidget():
-                    self.centralWidget().setAttribute(Qt.WA_TranslucentBackground)
-                    self.centralWidget().setStyleSheet("background-color: transparent;")
-
-                # Устанавливаем прозрачный фон для всех виджетов
-                self.setAttribute(Qt.WA_TranslucentBackground)
-                self.setStyleSheet(self.styleSheet() + " QMainWindow { background-color: transparent; }")
-            else:
-                print("Не удалось загрузить background.jpg - файл поврежден")
-        else:
-            print("Файл background.jpg не найден в текущей директории")
-
-    def setup_manual_ui(self):
-        # Ручная настройка UI если файл не найден
-        self.setWindowTitle("СВГ-Тренажер")
-        self.setMinimumSize(1200, 800)
-        self.resize(1400, 900)
-
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
-        layout = QVBoxLayout(central_widget)
-
-        # Верхняя панель
-        top_frame = QFrame()
-        top_frame.setObjectName("topFrame")
-        top_layout = QHBoxLayout(top_frame)
-
-        self.titleLabel = QLabel("СВГ-Тренажер")
-        self.titleLabel.setObjectName("titleLabel")
-        top_layout.addWidget(self.titleLabel)
-
-        top_layout.addStretch()
-
-        self.userLabel = QLabel()
-        self.userLabel.setObjectName("userLabel")
-        top_layout.addWidget(self.userLabel)
-
-        self.changeUserButton = QPushButton("🔄 Сменить пользователя")
-        self.changeUserButton.setObjectName("changeUserButton")
-        top_layout.addWidget(self.changeUserButton)
-
-        self.logoutButton = QPushButton("🚪 Выход")
-        self.logoutButton.setObjectName("logoutButton")
-        top_layout.addWidget(self.logoutButton)
-
-        layout.addWidget(top_frame)
-
-        # Табы
-        self.tabWidget = QTabWidget()
-        self.tabWidget.setObjectName("tabWidget")
-        layout.addWidget(self.tabWidget)
-
-        # Создаем вкладки
-        self.testTab = QWidget()
-        self.studyTab = QWidget()
-        self.practiceTab = QWidget()
-        self.statsTab = QWidget()
-        self.mistakesTab = QWidget()
-
-        self.tabWidget.addTab(self.testTab, "🎯 Тестирование")
-        self.tabWidget.addTab(self.studyTab, "📚 Обучение")
-        self.tabWidget.addTab(self.practiceTab, "📖 Учебный тест")
-        self.tabWidget.addTab(self.statsTab, "📊 Статистика")
-        self.tabWidget.addTab(self.mistakesTab, "❗ Ошибки")
-
-        # Настройка вкладок
-        self.setup_test_tab()
-        self.setup_practice_tab()
-        self.setup_study_tab()
-        self.setup_stats_tab()
-        self.setup_mistakes_tab()
-
-    def setup_test_tab(self):
-        layout = QVBoxLayout(self.testTab)
-
-        test_title = QLabel("🎯 Тестирование знаний")
-        test_title.setAlignment(Qt.AlignCenter)
-        test_title.setFont(QFont("", 24, QFont.Bold))
-        layout.addWidget(test_title)
-
-        test_desc = QLabel("Вам будет предложено 15 случайных вопросов.\n"
-                           "Для успешного прохождения необходимо набрать 80% правильных ответов.")
-        test_desc.setAlignment(Qt.AlignCenter)
-        test_desc.setFont(QFont("", 14))
-        layout.addWidget(test_desc)
-
-        self.startTestButton = QPushButton("▶ Начать тестирование")
-        self.startTestButton.setMinimumHeight(60)
-        self.startTestButton.setFont(QFont("", 18, QFont.Bold))
-        layout.addWidget(self.startTestButton)
-
-        layout.addStretch()
-
-    def setup_practice_tab(self):
-        layout = QVBoxLayout(self.practiceTab)
-
-        practice_title = QLabel("📖 Учебный тест с подсказками")
-        practice_title.setAlignment(Qt.AlignCenter)
-        practice_title.setFont(QFont("", 24, QFont.Bold))
-        layout.addWidget(practice_title)
-
-        practice_desc = QLabel("Идеально для подготовки! После каждого ответа\n"
-                               "вы увидите правильный вариант и пояснение.")
-        practice_desc.setAlignment(Qt.AlignCenter)
-        practice_desc.setFont(QFont("", 14))
-        layout.addWidget(practice_desc)
-
-        self.startPracticeButton = QPushButton("▶ Начать учебный тест")
-        self.startPracticeButton.setMinimumHeight(60)
-        self.startPracticeButton.setFont(QFont("", 18, QFont.Bold))
-        layout.addWidget(self.startPracticeButton)
-
-        layout.addStretch()
 
     def setup_study_tab(self):
         """Настройка вкладки обучения с поддержкой PDF и изображений"""
@@ -1681,7 +1431,6 @@ class MainWindow(QMainWindow):
         layout.addWidget(info_label)
 
         # График
-        from statistics_widget import StatisticsChart
         chart = StatisticsChart()
         chart.update_chart(results, passing_threshold=80)
         layout.addWidget(chart)
@@ -1845,6 +1594,55 @@ class MainWindow(QMainWindow):
         self.show()
         self.update_user_info()
 
+        start_test_btn = self.findChild(QPushButton, "startTestButton")
+        start_practice_btn = self.findChild(QPushButton, "startPracticeButton")
+
+        if start_test_btn:
+            start_test_btn.setStyleSheet("""
+                    QPushButton {
+                        background-color: #3498db;
+                        color: white;
+                        border: none;
+                        border-radius: 12px;
+                        padding: 12px 24px;
+                        font-weight: bold;
+                        font-size: 18px;
+                    }
+                    QPushButton:hover {
+                        background-color: #2980b9;
+                    }
+                    QPushButton:pressed {
+                        background-color: #1c6ea4;
+                    }
+                """)
+
+        if start_practice_btn:
+            start_practice_btn.setStyleSheet("""
+                    QPushButton {
+                        background-color: #27ae60;
+                        color: white;
+                        border: none;
+                        border-radius: 12px;
+                        padding: 12px 24px;
+                        font-weight: bold;
+                        font-size: 18px;
+                    }
+                    QPushButton:hover {
+                        background-color: #219a52;
+                    }
+                    QPushButton:pressed {
+                        background-color: #1e8449;
+                    }
+                """)
+
+        # Принудительно обновляем кнопки
+        if start_test_btn:
+            start_test_btn.update()
+            start_test_btn.repaint()
+        if start_practice_btn:
+            start_practice_btn.update()
+            start_practice_btn.repaint()
+
         if hasattr(self, 'statsTab'):
             # Удаляем все виджеты на вкладке
             layout = self.statsTab.layout()
@@ -1860,17 +1658,6 @@ class MainWindow(QMainWindow):
 
             # Создаем новое содержимое
             self.setup_stats_tab_content()
-
-        # Настраиваем вкладки (гарантируем, что они созданы)
-        if not hasattr(self, 'studyMaterialsLayout'):
-            self.setup_study_tab()
-
-        if not hasattr(self, 'statsInfoLabel'):  # <-- ДОБАВЬТЕ ЭТУ ПРОВЕРКУ
-            self.setup_stats_tab()
-
-        if not hasattr(self, 'mistakesLayout'):
-            self.setup_mistakes_tab()
-
         self.setup_admin_tabs()
 
         # Принудительно загружаем данные

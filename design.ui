@@ -19,6 +19,200 @@
     <height>800</height>
    </size>
   </property>
+  <property name="styleSheet">
+   <string notr="true">
+    /* ========== ГЛАВНОЕ ОКНО ========== */
+    QMainWindow {
+        background-color: #f0f2f5;
+    }
+
+    /* ========== МЕТКИ ========== */
+    QLabel {
+        color: #2c3e50;
+        background-color: transparent;
+    }
+
+    /* ========== КНОПКИ ========== */
+    /* Общий стиль для всех кнопок */
+    QPushButton {
+        background-color: #3498db;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-weight: bold;
+        font-size: 14px;
+    }
+    QPushButton:hover {
+        background-color: #2980b9;
+    }
+    QPushButton:pressed {
+        background-color: #1c6ea4;
+    }
+    QPushButton:disabled {
+        background-color: #ced4da;
+        color: #6c757d;
+    }
+
+    /* Кнопка "Начать учебный тест" */
+    QPushButton#startPracticeButton {
+        background-color: #27ae60;
+        font-size: 18px;
+        padding: 12px 24px;
+        border-radius: 12px;
+    }
+    QPushButton#startPracticeButton:hover {
+        background-color: #219a52;
+    }
+
+    /* Кнопка "Начать тестирование" */
+    QPushButton#startTestButton {
+        background-color: #3498db;
+        font-size: 18px;
+        padding: 12px 24px;
+        border-radius: 12px;
+    }
+    QPushButton#startTestButton:hover {
+        background-color: #2980b9;
+    }
+
+    /* Кнопка "Выход" */
+    QPushButton#logoutButton {
+        background-color: #e74c3c;
+    }
+    QPushButton#logoutButton:hover {
+        background-color: #c0392b;
+    }
+
+    /* Кнопки "Обновить" */
+    QPushButton#refreshStudyButton,
+    QPushButton#refreshStatsButton,
+    QPushButton#refreshMistakesButton {
+        background-color: #6c757d;
+    }
+    QPushButton#refreshStudyButton:hover,
+    QPushButton#refreshStatsButton:hover,
+    QPushButton#refreshMistakesButton:hover {
+        background-color: #5a6268;
+    }
+
+    /* Кнопка "Сменить пользователя" */
+    QPushButton#changeUserButton {
+        background-color: #3498db;
+    }
+
+    /* ========== ВКЛАДКИ ========== */
+    QTabWidget::pane {
+        background-color: rgba(255, 255, 255, 0.9);
+        border: 2px solid #dee2e6;
+        border-radius: 10px;
+    }
+    QTabBar::tab {
+        background-color: #e9ecef;
+        color: #495057;
+        padding: 10px 20px;
+        margin-right: 5px;
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+    }
+    QTabBar::tab:selected {
+        background-color: #3498db;
+        color: white;
+    }
+    QTabBar::tab:hover:!selected {
+        background-color: #dee2e6;
+    }
+
+    /* ========== ОБЛАСТИ ПРОКРУТКИ ========== */
+    QScrollArea {
+        background-color: transparent;
+        border: none;
+    }
+
+    /* ========== РАМКИ ========== */
+    QFrame {
+        background-color: rgba(255, 255, 255, 0.85);
+        border-radius: 10px;
+        border: 1px solid #dee2e6;
+    }
+
+    /* Верхняя панель */
+    QFrame#topFrame {
+        background-color: white;
+        border-bottom: 1px solid #dee2e6;
+        border-radius: 0;
+    }
+
+    /* ========== ПОЛЯ ВВОДА ========== */
+    QLineEdit, QTextEdit {
+        background-color: white;
+        color: #2c3e50;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        padding: 8px;
+    }
+    QLineEdit:focus, QTextEdit:focus {
+        border-color: #3498db;
+    }
+
+    /* ========== ТАБЛИЦЫ ========== */
+    QTableWidget {
+        background-color: white;
+        color: #2c3e50;
+        gridline-color: #dee2e6;
+        selection-background-color: #3498db;
+        selection-color: white;
+    }
+    QHeaderView::section {
+        background-color: #e9ecef;
+        color: #2c3e50;
+        padding: 8px;
+        border: 1px solid #dee2e6;
+    }
+
+    /* ========== ЧЕКБОКСЫ ========== */
+    QCheckBox {
+        color: #2c3e50;
+        spacing: 12px;
+        font-size: 14px;
+        padding: 8px;
+        background-color: transparent;
+    }
+    QCheckBox::indicator {
+        width: 20px;
+        height: 20px;
+        border-radius: 5px;
+        border: 2px solid #3498db;
+        background-color: white;
+    }
+    QCheckBox::indicator:checked {
+        background-color: #27ae60;
+        border-color: #27ae60;
+    }
+
+    /* ========== ПРОГРЕСС-БАР ========== */
+    QProgressBar {
+        border: none;
+        border-radius: 10px;
+        background-color: #e9ecef;
+        text-align: center;
+        color: #2c3e50;
+        font-weight: bold;
+    }
+    QProgressBar::chunk {
+        background-color: #3498db;
+        border-radius: 10px;
+    }
+
+    /* ========== ДИАЛОГИ ========== */
+    QDialog {
+        background-color: rgba(255, 255, 255, 0.95);
+    }
+    QMessageBox {
+        background-color: white;
+    }
+   </string>
+  </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
     <property name="spacing">
@@ -69,6 +263,9 @@
            <bold>true</bold>
           </font>
          </property>
+         <property name="styleSheet">
+          <string notr="true">color: #2c3e50;</string>
+         </property>
         </widget>
        </item>
        <item>
@@ -78,6 +275,9 @@
          </property>
          <property name="alignment">
           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">color: #495057; font-size: 14px;</string>
          </property>
         </widget>
        </item>
@@ -122,6 +322,9 @@
        <layout class="QVBoxLayout" name="verticalLayout_2">
         <item>
          <widget class="QFrame" name="testFrame">
+          <property name="styleSheet">
+           <string notr="true">background-color: transparent; border: none;</string>
+          </property>
           <layout class="QVBoxLayout" name="verticalLayout_3">
            <item>
             <widget class="QLabel" name="testTitleLabel">
@@ -138,12 +341,15 @@
              <property name="alignment">
               <set>Qt::AlignCenter</set>
              </property>
+             <property name="styleSheet">
+              <string notr="true">color: #2c3e50;</string>
+             </property>
             </widget>
            </item>
            <item>
             <widget class="QLabel" name="testDescLabel">
              <property name="text">
-              <string>Вам будет предложено 15 случайных вопросов.\nДля успешного прохождения необходимо набрать 80% правильных ответов.</string>
+              <string>Вам будет предложено 15 случайных вопросов. Для успешного прохождения необходимо набрать 80% правильных ответов.</string>
              </property>
              <property name="font">
               <font>
@@ -152,6 +358,9 @@
              </property>
              <property name="alignment">
               <set>Qt::AlignCenter</set>
+             </property>
+             <property name="styleSheet">
+              <string notr="true">color: #6c757d;</string>
              </property>
             </widget>
            </item>
@@ -165,13 +374,6 @@
                <width>300</width>
                <height>60</height>
               </size>
-             </property>
-             <property name="font">
-              <font>
-               <pointsize>18</pointsize>
-               <weight>75</weight>
-               <bold>true</bold>
-              </font>
              </property>
             </widget>
            </item>
@@ -199,6 +401,9 @@
                <weight>75</weight>
                <bold>true</bold>
               </font>
+             </property>
+             <property name="styleSheet">
+              <string notr="true">color: #2c3e50;</string>
              </property>
             </widget>
            </item>
@@ -245,6 +450,9 @@
        <layout class="QVBoxLayout" name="verticalLayout_5">
         <item>
          <widget class="QFrame" name="practiceFrame">
+          <property name="styleSheet">
+           <string notr="true">background-color: transparent; border: none;</string>
+          </property>
           <layout class="QVBoxLayout" name="verticalLayout_6">
            <item>
             <widget class="QLabel" name="practiceTitleLabel">
@@ -261,12 +469,15 @@
              <property name="alignment">
               <set>Qt::AlignCenter</set>
              </property>
+             <property name="styleSheet">
+              <string notr="true">color: #2c3e50;</string>
+             </property>
             </widget>
            </item>
            <item>
             <widget class="QLabel" name="practiceDescLabel">
              <property name="text">
-              <string>Идеально для подготовки! После каждого ответа\nвы увидите правильный вариант и пояснение.</string>
+              <string>Идеально для подготовки! После каждого ответа вы увидите правильный вариант и пояснение.</string>
              </property>
              <property name="font">
               <font>
@@ -275,6 +486,9 @@
              </property>
              <property name="alignment">
               <set>Qt::AlignCenter</set>
+             </property>
+             <property name="styleSheet">
+              <string notr="true">color: #6c757d;</string>
              </property>
             </widget>
            </item>
@@ -288,13 +502,6 @@
                <width>300</width>
                <height>60</height>
               </size>
-             </property>
-             <property name="font">
-              <font>
-               <pointsize>18</pointsize>
-               <weight>75</weight>
-               <bold>true</bold>
-              </font>
              </property>
             </widget>
            </item>
@@ -322,6 +529,9 @@
                <weight>75</weight>
                <bold>true</bold>
               </font>
+             </property>
+             <property name="styleSheet">
+              <string notr="true">color: #2c3e50;</string>
              </property>
             </widget>
            </item>
@@ -380,6 +590,9 @@
                <weight>75</weight>
                <bold>true</bold>
               </font>
+             </property>
+             <property name="styleSheet">
+              <string notr="true">color: #2c3e50;</string>
              </property>
             </widget>
            </item>
