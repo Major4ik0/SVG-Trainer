@@ -18,6 +18,7 @@ from auth_manager import AuthManager
 from test_window import TestWindow
 from login_dialog import LoginDialog
 from statistics_widget import StatisticsChart
+from viewer_widget import MaterialViewerDialog
 
 
 class MainWindow(QMainWindow):
@@ -459,7 +460,7 @@ class MainWindow(QMainWindow):
             self.admin_materials_table.setCellWidget(row, 2, delete_btn)
 
     def load_study_materials(self):
-        """Загрузка учебных материалов для обычного пользователя"""
+        """Загрузка учебных материалов для обычного пользователя с возможностью открытия"""
         if hasattr(self, 'studyMaterialsLayout'):
             for i in reversed(range(self.studyMaterialsLayout.count())):
                 widget = self.studyMaterialsLayout.itemAt(i).widget()
@@ -477,50 +478,106 @@ class MainWindow(QMainWindow):
 
         for material in materials:
             card = QFrame()
+            card.setCursor(Qt.PointingHandCursor)
             card.setStyleSheet("""
                 QFrame {
-                    background-color: #f5f5f5;
+                    background-color: white;
                     border-radius: 12px;
                     margin: 8px;
                     padding: 15px;
+                    border: 1px solid #dee2e6;
                 }
                 QFrame:hover {
-                    background-color: #585b70;
+                    background-color: #f8f9fa;
+                    border-color: #3498db;
                 }
             """)
 
+            # Делаем карточку кликабельной
+            card.mousePressEvent = lambda event, m=material: self.open_material(m)
+
             card_layout = QVBoxLayout(card)
 
-            title = QLabel(f"📄 {material['filename']}")
-            title.setFont(QFont("", 14, QFont.Bold))
-            title.setStyleSheet("color: #89b4fa;")
-            card_layout.addWidget(title)
+            # Иконка и название
+            header_layout = QHBoxLayout()
 
+            file_type = material.get('file_type', 'text')
+            if file_type == 'pdf':
+                icon = "📑"
+                type_text = "PDF документ"
+            elif file_type == 'image':
+                icon = "🖼️"
+                type_text = "Изображение"
+            else:
+                icon = "📄"
+                type_text = "Текстовый документ"
+
+            title = QLabel(f"{icon} {material['filename']}")
+            title.setFont(QFont("", 14, QFont.Bold))
+            title.setStyleSheet("color: #2c3e50;")
+            header_layout.addWidget(title)
+
+            header_layout.addStretch()
+
+            type_badge = QLabel(type_text)
+            type_badge.setStyleSheet("""
+                QLabel {
+                    background-color: #e9ecef;
+                    color: #495057;
+                    padding: 4px 12px;
+                    border-radius: 12px;
+                    font-size: 11px;
+                }
+            """)
+            header_layout.addWidget(type_badge)
+
+            card_layout.addLayout(header_layout)
+
+            # Описание
             if material.get('description'):
                 desc = QLabel(material['description'])
                 desc.setWordWrap(True)
-                desc.setStyleSheet("color: #a6adc8;")
+                desc.setStyleSheet("color: #6c757d; font-size: 12px;")
                 card_layout.addWidget(desc)
 
-            # Отображение содержимого в зависимости от типа
-            if material.get('content'):
-                if material['file_type'] == 'image':
-                    # Для изображений показываем миниатюру
-                    if os.path.exists(material['content']):
-                        pixmap = QPixmap(material['content'])
-                        if not pixmap.isNull():
-                            pixmap = pixmap.scaled(200, 150, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-                            img_label = QLabel()
-                            img_label.setPixmap(pixmap)
-                            img_label.setAlignment(Qt.AlignCenter)
-                            card_layout.addWidget(img_label)
-                else:
-                    content = QLabel(material['content'][:300] + ("..." if len(material['content']) > 300 else ""))
-                    content.setWordWrap(True)
-                    content.setStyleSheet("color: #cdd6f4;")
-                    card_layout.addWidget(content)
+            # Предпросмотр для изображений
+            if file_type == 'image' and material.get('content') and os.path.exists(material['content']):
+                preview_label = QLabel()
+                preview_label.setAlignment(Qt.AlignCenter)
+                pixmap = QPixmap(material['content'])
+                if not pixmap.isNull():
+                    pixmap = pixmap.scaled(300, 200, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                    preview_label.setPixmap(pixmap)
+                    card_layout.addWidget(preview_label)
+
+            # Кнопка открытия
+            open_button = QPushButton(f"📖 Открыть {type_text}")
+            open_button.setStyleSheet("""
+                QPushButton {
+                    background-color: #3498db;
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    padding: 8px 16px;
+                    font-weight: bold;
+                    margin-top: 10px;
+                }
+                QPushButton:hover {
+                    background-color: #2980b9;
+                }
+            """)
+            open_button.clicked.connect(lambda checked, m=material: self.open_material(m))
+            card_layout.addWidget(open_button)
 
             self.studyMaterialsLayout.addWidget(card)
+
+    def open_material(self, material):
+        """Открытие материала во встроенном просмотрщике"""
+        try:
+            dialog = MaterialViewerDialog(material, self)
+            dialog.exec_()
+        except Exception as e:
+            QMessageBox.warning(self, "Ошибка", f"Не удалось открыть материал:\n{str(e)}")
 
     def load_mistakes(self):
         """Загрузка ошибок пользователя"""

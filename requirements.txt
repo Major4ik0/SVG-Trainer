@@ -2,3 +2,4 @@ numpy
 PyQt5==5.15.9
 matplotlib==3.7.1
 Pillow==10.0.0
+PyMuPDF==1.23.8

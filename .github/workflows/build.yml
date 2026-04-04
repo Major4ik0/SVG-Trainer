@@ -28,7 +28,7 @@ jobs:
       - name: Install dependencies for x64
         run: |
           python -m pip install --upgrade pip
-          pip install numpy==1.21.6 PyQt5==5.15.9 matplotlib==3.7.1 Pillow==10.0.0 pyinstaller==5.13.0
+          pip install numpy==1.21.6 PyQt5==5.15.9 matplotlib==3.7.1 Pillow==10.0.0 pyinstaller==5.13.0 PyMuPDF==1.23.8
 
       - name: Build x64 executable
         run: |
@@ -40,7 +40,8 @@ jobs:
             --hidden-import=PyQt5.QtCore `
             --hidden-import=PyQt5.QtGui `
             --hidden-import=PyQt5.QtWidgets `
-            --hidden-import=matplotlib `
+            --hidden-import=PyQt5.QtWidgets `
+            --hidden-import=PyMuPDF `
             --hidden-import=matplotlib.backends.backend_qt5agg `
             --hidden-import=matplotlib.pyplot `
             --hidden-import=numpy `
@@ -51,7 +52,7 @@ jobs:
             --hidden-import=encodings.utf_8 `
             --hidden-import=encodings.cp1251 `
             --add-data="styles.qss;." `
-            main.py database.py auth_manager.py login_dialog.py main_window.py statistics_widget.py test_window.py
+            main.py database.py auth_manager.py login_dialog.py main_window.py statistics_widget.py test_window.py viewer_widget.py design.ui
 
           if (Test-Path "dist/$exe_name.exe") {
             Write-Host "✅ Сборка x64 успешна"
@@ -93,7 +94,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip==20.3.4
           pip install wheel==0.34.2 setuptools==44.0.0
-          pip install numpy==1.19.3 PyQt5==5.15.4 matplotlib==3.3.4 Pillow==8.4.0 pyinstaller==5.0.1
+          pip install numpy==1.19.3 PyQt5==5.15.4 matplotlib==3.3.4 Pillow==8.4.0 pyinstaller==5.0.1 PyMuPDF==1.23.8
 
       - name: Build x86 executable
         run: |
@@ -106,6 +107,7 @@ jobs:
             --hidden-import=PyQt5.QtGui `
             --hidden-import=PyQt5.QtWidgets `
             --hidden-import=matplotlib `
+            --hidden-import=PyMuPDF `
             --hidden-import=matplotlib.backends.backend_qt5agg `
             --hidden-import=matplotlib.pyplot `
             --hidden-import=numpy `
@@ -116,7 +118,7 @@ jobs:
             --hidden-import=encodings.utf_8 `
             --hidden-import=encodings.cp1251 `
             --add-data="styles.qss;." `
-            main.py database.py auth_manager.py login_dialog.py main_window.py statistics_widget.py test_window.py
+            main.py database.py auth_manager.py login_dialog.py main_window.py statistics_widget.py test_window.py viewer_widget.py design.ui
 
           if (Test-Path "dist/$exe_name.exe") {
             Write-Host "✅ Сборка x86 успешна"
