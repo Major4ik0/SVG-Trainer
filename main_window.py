@@ -250,19 +250,22 @@ class MainWindow(QMainWindow):
         dialog.exec_()
 
     def setup_mistakes_tab(self):
-        """Настройка вкладки ошибок"""
-        layout = QVBoxLayout(self.mistakesTab)
+        """Настройка вкладки ошибок - используем виджеты из UI"""
+        # Не создаем новый layout, используем существующий из UI
+        # Очищаем существующие виджеты в mistakesLayout
+        if hasattr(self, 'mistakesLayout'):
+            for i in reversed(range(self.mistakesLayout.count())):
+                widget = self.mistakesLayout.itemAt(i).widget()
+                if widget:
+                    widget.deleteLater()
 
-        self.mistakesLabel = QLabel("❗ Вопросы, в которых были допущены ошибки:")
-        self.mistakesLabel.setFont(QFont("", 14, QFont.Bold))
-        layout.addWidget(self.mistakesLabel)
-
-        self.mistakesList = QScrollArea()
-        self.mistakesList.setWidgetResizable(True)
-        self.mistakesContent = QWidget()
-        self.mistakesLayout = QVBoxLayout(self.mistakesContent)
-        self.mistakesList.setWidget(self.mistakesContent)
-        layout.addWidget(self.mistakesList)
+        # Добавляем информационную метку, если нужно
+        if not hasattr(self, 'mistakesLabel'):
+            self.mistakesLabel = QLabel("❗ Вопросы, в которых были допущены ошибки:")
+            self.mistakesLabel.setFont(QFont("", 14, QFont.Bold))
+            self.mistakesLabel.setStyleSheet("color: #2c3e50; padding: 10px; background-color: transparent;")
+            # Вставляем в начало layout
+            self.mistakesLayout.insertWidget(0, self.mistakesLabel)
 
     def show_login_dialog(self):
         self.hide()
@@ -278,23 +281,6 @@ class MainWindow(QMainWindow):
         user = self.auth_manager.get_current_user()
         if user and hasattr(self, 'userLabel'):
             self.userLabel.setText(f"👤 {user['full_name']} ({user['username']})")
-
-    def setup_admin_tabs(self):
-        if self.auth_manager.is_admin():
-            self.admin_users_tab = QWidget()
-            self.admin_questions_tab = QWidget()
-            self.admin_materials_tab = QWidget()
-            self.admin_stats_tab = QWidget()
-
-            self.tabWidget.addTab(self.admin_users_tab, "👥 Пользователи")
-            self.tabWidget.addTab(self.admin_questions_tab, "❓ Вопросы")
-            self.tabWidget.addTab(self.admin_materials_tab, "📁 Материалы")
-            self.tabWidget.addTab(self.admin_stats_tab, "📈 Статистика")
-
-            self.setup_admin_users_tab()
-            self.setup_admin_questions_tab()
-            self.setup_admin_materials_tab()
-            self.setup_admin_stats_tab()
 
     def setup_admin_users_tab(self):
         """Улучшенный дизайн таблицы пользователей"""
@@ -1552,7 +1538,7 @@ class MainWindow(QMainWindow):
         dialog.setStyleSheet("""
             QDialog {
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 #1a1a2e, stop:1 #16213e);
+                    stop:0 #c1c1d9, stop:1 #e3e1ed);
             }
             QLabel {
                 color: #e2e2e2;
@@ -1571,7 +1557,7 @@ class MainWindow(QMainWindow):
         # Общая информация
         percent = result['score'] / result['total'] * 100
         info_label = QLabel(f"""
-        <div style='text-align: center; padding: 20px;'>
+        <div style='text-align: center; padding: 20px; style='color: #000;'>
             <h2 style='color: #e94560;'>Результат теста</h2>
             <p><b>Дата:</b> {result['date']}</p>
             <p><b>Результат:</b> {result['score']}/{result['total']} ({percent:.1f}%)</p>
@@ -1652,9 +1638,18 @@ class MainWindow(QMainWindow):
 
     def on_login_success(self):
         """После успешного входа"""
+        user = self.auth_manager.get_current_user()
+
+        # КРИТИЧНО: Проверяем, что пользователь действительно залогинен
+        if not user:
+            QMessageBox.critical(self, "Ошибка", "Не удалось получить данные пользователя")
+            self.show_login_dialog()
+            return
+
         self.show()
         self.update_user_info()
 
+        # Обновляем интерфейс в зависимости от роли
         start_test_btn = self.findChild(QPushButton, "startTestButton")
         start_practice_btn = self.findChild(QPushButton, "startPracticeButton")
 
@@ -1695,42 +1690,70 @@ class MainWindow(QMainWindow):
                         background-color: #1e8449;
                     }
                 """)
+        self.setup_stats_tab_content()
+        # self.setup_mistakes_tab()
+        # self.setup_study_tab()
 
-        # Принудительно обновляем кнопки
-        if start_test_btn:
-            start_test_btn.update()
-            start_test_btn.repaint()
-        if start_practice_btn:
-            start_practice_btn.update()
-            start_practice_btn.repaint()
-
-        if hasattr(self, 'statsTab'):
-            # Удаляем все виджеты на вкладке
-            layout = self.statsTab.layout()
-            if layout is None:
-                layout = QVBoxLayout(self.statsTab)
-
-            # Очищаем layout
-            while layout.count():
-                item = layout.takeAt(0)
-                widget = item.widget()
-                if widget:
-                    widget.deleteLater()
-
-            # Создаем новое содержимое
-            self.setup_stats_tab_content()
+        # Загружаем вкладки
         self.setup_admin_tabs()
 
-        # Принудительно загружаем данные
+        # Загружаем данные
         self.load_study_materials()
-        self.load_stats()  # Загружаем статистику пользователя
+        self.load_stats()
         self.load_mistakes()
 
         if self.auth_manager.is_admin():
+            print("Loading admin stats...")
             self.load_admin_stats()
+        else:
+            print("Regular user - hiding admin tabs")
+            # Скрываем админские вкладки, если они есть
+            if hasattr(self, 'admin_users_tab') and self.admin_users_tab:
+                self.admin_users_tab.hide()
+            if hasattr(self, 'admin_questions_tab') and self.admin_questions_tab:
+                self.admin_questions_tab.hide()
+            if hasattr(self, 'admin_materials_tab') and self.admin_materials_tab:
+                self.admin_materials_tab.hide()
+            if hasattr(self, 'admin_stats_tab') and self.admin_stats_tab:
+                self.admin_stats_tab.hide()
 
-        # Подключаем сигнал смены вкладки для обновления статистики
+        # Подключаем сигнал смены вкладки
         self.tabWidget.currentChanged.connect(self.on_tab_changed)
+
+    def setup_admin_tabs(self):
+        """Настройка админских вкладок - только если пользователь админ"""
+        if not self.auth_manager.is_admin():
+            print("User is not admin, skipping admin tabs setup")
+            return
+
+        print("Setting up admin tabs...")
+
+        # Проверяем, не добавлены ли уже вкладки
+        admin_tab_names = ["👥 Пользователи", "❓ Вопросы", "📁 Материалы", "📈 Статистика"]
+        existing_tabs = []
+        for i in range(self.tabWidget.count()):
+            existing_tabs.append(self.tabWidget.tabText(i))
+
+        # Добавляем только если их еще нет
+        if "👥 Пользователи" not in existing_tabs:
+            self.admin_users_tab = QWidget()
+            self.tabWidget.addTab(self.admin_users_tab, "👥 Пользователи")
+            self.setup_admin_users_tab()
+
+        if "❓ Вопросы" not in existing_tabs:
+            self.admin_questions_tab = QWidget()
+            self.tabWidget.addTab(self.admin_questions_tab, "❓ Вопросы")
+            self.setup_admin_questions_tab()
+
+        if "📁 Материалы" not in existing_tabs:
+            self.admin_materials_tab = QWidget()
+            self.tabWidget.addTab(self.admin_materials_tab, "📁 Материалы")
+            self.setup_admin_materials_tab()
+
+        if "📈 Статистика" not in existing_tabs:
+            self.admin_stats_tab = QWidget()
+            self.tabWidget.addTab(self.admin_stats_tab, "📈 Статистика")
+            self.setup_admin_stats_tab()
 
     def on_tab_changed(self, index):
         """При смене вкладки обновляем данные"""
@@ -1746,108 +1769,6 @@ class MainWindow(QMainWindow):
             self.load_users_list()
         elif "Вопросы" in tab_text:
             self.load_questions_list()
-
-    def setup_stats_tab(self):
-        """Настройка вкладки статистики с расширенной информацией"""
-        # Очищаем существующие виджеты
-        if self.statsTab.layout():
-            self.clear_layout(self.statsTab.layout())
-
-        layout = QVBoxLayout(self.statsTab)
-        layout.setContentsMargins(10, 10, 10, 10)
-
-        # Создаем вкладки внутри статистики
-        self.stats_tabs = QTabWidget()
-        self.stats_tabs.setStyleSheet("""
-            QTabWidget::pane {
-                background-color: #f8f9fa;
-                border: 1px solid #dee2e6;
-                border-radius: 10px;
-            }
-            QTabBar::tab {
-                background-color: #e9ecef;
-                color: #495057;
-                padding: 10px 20px;
-                margin-right: 5px;
-                border-top-left-radius: 8px;
-                border-top-right-radius: 8px;
-            }
-            QTabBar::tab:selected {
-                background-color: #3498db;
-                color: white;
-            }
-            QTabBar::tab:hover:!selected {
-                background-color: #dee2e6;
-            }
-        """)
-        layout.addWidget(self.stats_tabs)
-
-        # Вкладка общей статистики
-        self.general_stats_tab = QWidget()
-        self.general_stats_tab.setStyleSheet("background-color: #f8f9fa;")
-        self.stats_tabs.addTab(self.general_stats_tab, "📊 Общая статистика")
-
-        # Вкладка детальной статистики
-        self.detailed_stats_tab = QWidget()
-        self.detailed_stats_tab.setStyleSheet("background-color: #f8f9fa;")
-        self.stats_tabs.addTab(self.detailed_stats_tab, "📈 Детальная статистика")
-
-        # Настройка общей статистики
-        general_layout = QVBoxLayout(self.general_stats_tab)
-        general_layout.setContentsMargins(10, 10, 10, 10)
-
-        # Информационная карточка
-        self.statsInfoLabel = QLabel()
-        self.statsInfoLabel.setWordWrap(True)
-        self.statsInfoLabel.setStyleSheet("""
-            background-color: white;
-            padding: 15px;
-            border-radius: 10px;
-            border: 1px solid #dee2e6;
-        """)
-        self.statsInfoLabel.setMinimumHeight(200)
-        general_layout.addWidget(self.statsInfoLabel)
-
-        # График динамики
-        chart_label = QLabel("📈 Динамика результатов:")
-        chart_label.setFont(QFont("Segoe UI", 12, QFont.Bold))
-        chart_label.setStyleSheet("color: #2c3e50;")
-        general_layout.addWidget(chart_label)
-
-        self.chart_widget = StatisticsChart()
-        self.chart_widget.setMinimumHeight(350)
-        general_layout.addWidget(self.chart_widget)
-
-        # Круговая диаграмма
-        pie_chart_label = QLabel("📊 Соотношение успешных и неуспешных тестов:")
-        pie_chart_label.setFont(QFont("Segoe UI", 12, QFont.Bold))
-        pie_chart_label.setStyleSheet("color: #2c3e50;")
-        general_layout.addWidget(pie_chart_label)
-
-        self.pie_chart_widget = StatisticsChart()
-        self.pie_chart_widget.setMinimumHeight(250)
-        general_layout.addWidget(self.pie_chart_widget)
-
-        # Настройка детальной статистики
-        detailed_layout = QVBoxLayout(self.detailed_stats_tab)
-        detailed_layout.setContentsMargins(10, 10, 10, 10)
-
-        # Список результатов
-        results_label = QLabel("📝 История всех тестирований:")
-        results_label.setFont(QFont("Segoe UI", 12, QFont.Bold))
-        results_label.setStyleSheet("color: #2c3e50;")
-        detailed_layout.addWidget(results_label)
-
-        self.statsList = QScrollArea()
-        self.statsList.setWidgetResizable(True)
-        self.statsList.setStyleSheet("QScrollArea { border: none; background-color: transparent; }")
-
-        self.statsContent = QWidget()
-        self.statsContent.setStyleSheet("background-color: transparent;")
-        self.statsResultsLayout = QVBoxLayout(self.statsContent)
-        self.statsResultsLayout.setSpacing(10)
-        self.statsList.setWidget(self.statsContent)
-        detailed_layout.addWidget(self.statsList)
 
     def clear_layout(self, layout):
         """Очистка layout от всех виджетов"""
@@ -1944,7 +1865,7 @@ class MainWindow(QMainWindow):
         if results:
             for i, result in enumerate(results, 1):
                 card = QFrame()
-                card.setStyleSheet("background-color: #45475a; border-radius: 10px; margin: 5px; padding: 10px;")
+                card.setStyleSheet("background-color: #f8f8ff; border-radius: 10px; margin: 1px; padding: 5px;")
 
                 percent = result['score'] / result['total'] * 100
                 status = "✅ Сдано" if result['passed'] else "❌ Не сдано"
@@ -1957,13 +1878,13 @@ class MainWindow(QMainWindow):
                 main_layout = QVBoxLayout(card)
 
                 info_layout = QHBoxLayout()
-                info_text_label = QLabel(f"<b>Попытка #{i}</b> | 📅 {date_str}")
-                info_text_label.setStyleSheet("color: #89b4fa;")
+                info_text_label = QLabel(f"<b>Попытка #{i}</b>  {date_str}")
+                info_text_label.setStyleSheet("color: #5996f7;")
                 info_layout.addWidget(info_text_label)
                 info_layout.addStretch()
 
                 result_text = QLabel(f"📊 Результат: {result['score']}/{result['total']} ({percent:.1f}%)")
-                result_text.setStyleSheet("color: #cdd6f4;")
+                result_text.setStyleSheet("color: #242424;")
                 info_layout.addWidget(result_text)
 
                 status_label = QLabel(status)
@@ -1973,6 +1894,7 @@ class MainWindow(QMainWindow):
                 main_layout.addLayout(info_layout)
 
                 details_btn = QPushButton("📖 Подробнее")
+                details_btn.setStyleSheet("color: #242424;")
                 details_btn.clicked.connect(lambda checked, rid=result['id']: self.view_test_details(rid))
                 main_layout.addWidget(details_btn)
 

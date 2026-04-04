@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QLabel,
-                             QLineEdit, QPushButton)
+                             QLineEdit, QPushButton, QMessageBox)
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont
 
@@ -109,8 +109,11 @@ class LoginDialog(QDialog):
             return
 
         if self.auth_manager.login(username, password):
+            # Дополнительная проверка - кто залогинился
+            current_user = self.auth_manager.get_current_user()
+            print(f"Logged in as: {current_user['username']}, role: {current_user['role']}")
+
             self.login_successful.emit()
             self.accept()
         else:
             self.error_label.setText("❌ Неверный логин или пароль")
-

@@ -551,24 +551,7 @@
           </layout>
          </widget>
         </item>
-        <item>
-         <widget class="QScrollArea" name="statsScrollArea">
-          <property name="widgetResizable">
-           <bool>true</bool>
-          </property>
-          <widget class="QWidget" name="statsScrollWidget">
-           <property name="geometry">
-            <rect>
-             <x>0</x>
-             <y>0</y>
-             <width>1334</width>
-             <height>665</height>
-            </rect>
-           </property>
-           <layout class="QVBoxLayout" name="statsLayout"/>
-          </widget>
-         </widget>
-        </item>
+
        </layout>
       </widget>
       <widget class="QWidget" name="mistakesTab">
@@ -613,23 +596,67 @@
          </widget>
         </item>
         <item>
-         <widget class="QScrollArea" name="mistakesScrollArea">
-          <property name="widgetResizable">
-           <bool>true</bool>
-          </property>
-          <widget class="QWidget" name="mistakesScrollWidget">
-           <property name="geometry">
-            <rect>
-             <x>0</x>
-             <y>0</y>
-             <width>1334</width>
-             <height>665</height>
-            </rect>
-           </property>
-           <layout class="QVBoxLayout" name="mistakesLayout"/>
-          </widget>
-         </widget>
-        </item>
+ <widget class="QScrollArea" name="mistakesScrollArea">
+  <property name="styleSheet">
+   <string notr="true">
+    QScrollArea {
+        background-color: transparent;
+        border: none;
+    }
+    QScrollArea > QWidget > QWidget {
+        background-color: transparent;
+    }
+    QScrollBar:vertical {
+        background: #e9ecef;
+        width: 10px;
+        border-radius: 5px;
+    }
+    QScrollBar::handle:vertical {
+        background: #3498db;
+        border-radius: 5px;
+    }
+    QScrollBar::handle:vertical:hover {
+        background: #2980b9;
+    }
+   </string>
+  </property>
+  <property name="widgetResizable">
+   <bool>true</bool>
+  </property>
+  <widget class="QWidget" name="mistakesScrollWidget">
+   <property name="styleSheet">
+    <string notr="true">
+     background-color: transparent;
+    </string>
+   </property>
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1334</width>
+     <height>665</height>
+    </rect>
+   </property>
+   <layout class="QVBoxLayout" name="mistakesLayout">
+    <property name="spacing">
+     <number>10</number>
+    </property>
+    <property name="leftMargin">
+     <number>10</number>
+    </property>
+    <property name="topMargin">
+     <number>10</number>
+    </property>
+    <property name="rightMargin">
+     <number>10</number>
+    </property>
+    <property name="bottomMargin">
+     <number>10</number>
+    </property>
+   </layout>
+  </widget>
+ </widget>
+</item>
        </layout>
       </widget>
      </widget>
