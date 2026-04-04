@@ -1902,44 +1902,78 @@ class MainWindow(QMainWindow):
     def setup_stats_tab(self):
         """Настройка вкладки статистики с расширенной информацией"""
         # Очищаем существующие виджеты
-        self.clear_layout(self.statsTab.layout())
+        if self.statsTab.layout():
+            self.clear_layout(self.statsTab.layout())
 
         layout = QVBoxLayout(self.statsTab)
+        layout.setContentsMargins(10, 10, 10, 10)
 
         # Создаем вкладки внутри статистики
         self.stats_tabs = QTabWidget()
+        self.stats_tabs.setStyleSheet("""
+            QTabWidget::pane {
+                background-color: #f8f9fa;
+                border: 1px solid #dee2e6;
+                border-radius: 10px;
+            }
+            QTabBar::tab {
+                background-color: #e9ecef;
+                color: #495057;
+                padding: 10px 20px;
+                margin-right: 5px;
+                border-top-left-radius: 8px;
+                border-top-right-radius: 8px;
+            }
+            QTabBar::tab:selected {
+                background-color: #3498db;
+                color: white;
+            }
+            QTabBar::tab:hover:!selected {
+                background-color: #dee2e6;
+            }
+        """)
         layout.addWidget(self.stats_tabs)
 
         # Вкладка общей статистики
         self.general_stats_tab = QWidget()
+        self.general_stats_tab.setStyleSheet("background-color: #f8f9fa;")
         self.stats_tabs.addTab(self.general_stats_tab, "📊 Общая статистика")
 
         # Вкладка детальной статистики
         self.detailed_stats_tab = QWidget()
+        self.detailed_stats_tab.setStyleSheet("background-color: #f8f9fa;")
         self.stats_tabs.addTab(self.detailed_stats_tab, "📈 Детальная статистика")
 
         # Настройка общей статистики
         general_layout = QVBoxLayout(self.general_stats_tab)
+        general_layout.setContentsMargins(10, 10, 10, 10)
 
         # Информационная карточка
         self.statsInfoLabel = QLabel()
         self.statsInfoLabel.setWordWrap(True)
-        self.statsInfoLabel.setStyleSheet("background-color: #f5f5f5; padding: 15px; border-radius: 10px;")
+        self.statsInfoLabel.setStyleSheet("""
+            background-color: white;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #dee2e6;
+        """)
         self.statsInfoLabel.setMinimumHeight(200)
         general_layout.addWidget(self.statsInfoLabel)
 
         # График динамики
         chart_label = QLabel("📈 Динамика результатов:")
         chart_label.setFont(QFont("Segoe UI", 12, QFont.Bold))
+        chart_label.setStyleSheet("color: #2c3e50;")
         general_layout.addWidget(chart_label)
 
         self.chart_widget = StatisticsChart()
         self.chart_widget.setMinimumHeight(350)
         general_layout.addWidget(self.chart_widget)
 
-        # Круговая диаграмма успехов/неудач
+        # Круговая диаграмма
         pie_chart_label = QLabel("📊 Соотношение успешных и неуспешных тестов:")
         pie_chart_label.setFont(QFont("Segoe UI", 12, QFont.Bold))
+        pie_chart_label.setStyleSheet("color: #2c3e50;")
         general_layout.addWidget(pie_chart_label)
 
         self.pie_chart_widget = StatisticsChart()
@@ -1948,16 +1982,22 @@ class MainWindow(QMainWindow):
 
         # Настройка детальной статистики
         detailed_layout = QVBoxLayout(self.detailed_stats_tab)
+        detailed_layout.setContentsMargins(10, 10, 10, 10)
 
         # Список результатов
         results_label = QLabel("📝 История всех тестирований:")
         results_label.setFont(QFont("Segoe UI", 12, QFont.Bold))
+        results_label.setStyleSheet("color: #2c3e50;")
         detailed_layout.addWidget(results_label)
 
         self.statsList = QScrollArea()
         self.statsList.setWidgetResizable(True)
+        self.statsList.setStyleSheet("QScrollArea { border: none; background-color: transparent; }")
+
         self.statsContent = QWidget()
+        self.statsContent.setStyleSheet("background-color: transparent;")
         self.statsResultsLayout = QVBoxLayout(self.statsContent)
+        self.statsResultsLayout.setSpacing(10)
         self.statsList.setWidget(self.statsContent)
         detailed_layout.addWidget(self.statsList)
 
@@ -2098,30 +2138,62 @@ class MainWindow(QMainWindow):
     def setup_admin_stats_tab(self):
         """Настройка админской вкладки статистики"""
         layout = QVBoxLayout(self.admin_stats_tab)
+        layout.setContentsMargins(10, 10, 10, 10)
 
         # Создаем вкладки внутри админской статистики
         self.admin_stats_tabs = QTabWidget()
+        self.admin_stats_tabs.setStyleSheet("""
+            QTabWidget::pane {
+                background-color: #f8f9fa;
+                border: 1px solid #dee2e6;
+                border-radius: 10px;
+            }
+            QTabBar::tab {
+                background-color: #e9ecef;
+                color: #495057;
+                padding: 10px 20px;
+                margin-right: 5px;
+                border-top-left-radius: 8px;
+                border-top-right-radius: 8px;
+            }
+            QTabBar::tab:selected {
+                background-color: #3498db;
+                color: white;
+            }
+            QTabBar::tab:hover:!selected {
+                background-color: #dee2e6;
+            }
+        """)
         layout.addWidget(self.admin_stats_tabs)
 
         # Вкладка общей статистики
         self.admin_general_tab = QWidget()
+        self.admin_general_tab.setStyleSheet("background-color: #f8f9fa;")
         self.admin_stats_tabs.addTab(self.admin_general_tab, "📊 Общая статистика")
 
         # Вкладка пользователей
         self.admin_users_stats_tab = QWidget()
+        self.admin_users_stats_tab.setStyleSheet("background-color: #f8f9fa;")
         self.admin_stats_tabs.addTab(self.admin_users_stats_tab, "👥 Статистика пользователей")
 
         # Настройка общей статистики
         general_layout = QVBoxLayout(self.admin_general_tab)
+        general_layout.setContentsMargins(10, 10, 10, 10)
 
         self.admin_stats_label = QLabel()
         self.admin_stats_label.setWordWrap(True)
-        self.admin_stats_label.setStyleSheet("background-color: #313244; padding: 15px; border-radius: 10px;")
+        self.admin_stats_label.setStyleSheet("""
+            background-color: white;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #dee2e6;
+        """)
         general_layout.addWidget(self.admin_stats_label)
 
         # График успеваемости пользователей
         chart_label = QLabel("📊 Средняя успеваемость пользователей:")
         chart_label.setFont(QFont("Segoe UI", 12, QFont.Bold))
+        chart_label.setStyleSheet("color: #2c3e50;")
         general_layout.addWidget(chart_label)
 
         self.admin_chart_widget = StatisticsChart()
@@ -2130,15 +2202,28 @@ class MainWindow(QMainWindow):
 
         # Настройка статистики пользователей
         users_layout = QVBoxLayout(self.admin_users_stats_tab)
+        users_layout.setContentsMargins(10, 10, 10, 10)
 
         # Фильтр поиска
         filter_layout = QHBoxLayout()
         filter_label = QLabel("🔍 Поиск пользователя:")
-        filter_label.setStyleSheet("color: #cdd6f4;")
+        filter_label.setStyleSheet("color: #2c3e50; background-color: transparent;")
         filter_layout.addWidget(filter_label)
 
         self.user_search_edit = QLineEdit()
         self.user_search_edit.setPlaceholderText("Введите имя или логин...")
+        self.user_search_edit.setStyleSheet("""
+            QLineEdit {
+                background-color: white;
+                border: 1px solid #dee2e6;
+                border-radius: 6px;
+                padding: 8px;
+                color: #2c3e50;
+            }
+            QLineEdit:focus {
+                border-color: #3498db;
+            }
+        """)
         self.user_search_edit.textChanged.connect(self.filter_users_stats)
         filter_layout.addWidget(self.user_search_edit)
 
@@ -2153,6 +2238,21 @@ class MainWindow(QMainWindow):
         ])
         self.admin_stats_table.horizontalHeader().setStretchLastSection(True)
         self.admin_stats_table.setAlternatingRowColors(True)
+        self.admin_stats_table.setStyleSheet("""
+            QTableWidget {
+                background-color: white;
+                color: #2c3e50;
+                gridline-color: #dee2e6;
+                selection-background-color: #3498db;
+                selection-color: white;
+            }
+            QHeaderView::section {
+                background-color: #e9ecef;
+                color: #2c3e50;
+                padding: 8px;
+                border: 1px solid #dee2e6;
+            }
+        """)
         self.admin_stats_table.setSortingEnabled(True)
         users_layout.addWidget(self.admin_stats_table)
 
@@ -2325,18 +2425,43 @@ class MainWindow(QMainWindow):
 
         # Создаем контейнер для содержимого
         content_widget = QWidget()
+        content_widget.setStyleSheet("background-color: transparent;")
         content_layout = QVBoxLayout(content_widget)
 
         # Создаем вкладки внутри статистики
         self.stats_tabs = QTabWidget()
+        self.stats_tabs.setStyleSheet("""
+            QTabWidget::pane {
+                background-color: #f8f9fa;
+                border: 1px solid #dee2e6;
+                border-radius: 10px;
+            }
+            QTabBar::tab {
+                background-color: #e9ecef;
+                color: #495057;
+                padding: 10px 20px;
+                margin-right: 5px;
+                border-top-left-radius: 8px;
+                border-top-right-radius: 8px;
+            }
+            QTabBar::tab:selected {
+                background-color: #3498db;
+                color: white;
+            }
+            QTabBar::tab:hover:!selected {
+                background-color: #dee2e6;
+            }
+        """)
         content_layout.addWidget(self.stats_tabs)
 
         # Вкладка общей статистики
         self.general_stats_tab = QWidget()
+        self.general_stats_tab.setStyleSheet("background-color: #f8f9fa;")
         self.stats_tabs.addTab(self.general_stats_tab, "📊 Общая статистика")
 
         # Вкладка детальной статистики
         self.detailed_stats_tab = QWidget()
+        self.detailed_stats_tab.setStyleSheet("background-color: #f8f9fa;")
         self.stats_tabs.addTab(self.detailed_stats_tab, "📈 Детальная статистика")
 
         # Настройка общей статистики - с прокруткой внутри
@@ -2345,19 +2470,26 @@ class MainWindow(QMainWindow):
         general_scroll.setStyleSheet("QScrollArea { border: none; background-color: transparent; }")
 
         general_content = QWidget()
+        general_content.setStyleSheet("background-color: transparent;")
         general_layout = QVBoxLayout(general_content)
         general_layout.setSpacing(15)
 
         # Информационная карточка
         self.statsInfoLabel = QLabel()
         self.statsInfoLabel.setWordWrap(True)
-        self.statsInfoLabel.setStyleSheet("background-color: #313244; padding: 15px; border-radius: 10px;")
+        self.statsInfoLabel.setStyleSheet("""
+            background-color: white;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #dee2e6;
+        """)
         self.statsInfoLabel.setMinimumHeight(200)
         general_layout.addWidget(self.statsInfoLabel)
 
         # График динамики
         chart_label = QLabel("📈 Динамика результатов:")
         chart_label.setFont(QFont("Segoe UI", 12, QFont.Bold))
+        chart_label.setStyleSheet("color: #2c3e50; background-color: transparent;")
         general_layout.addWidget(chart_label)
 
         self.chart_widget = StatisticsChart()
@@ -2368,6 +2500,7 @@ class MainWindow(QMainWindow):
         # Круговая диаграмма
         pie_chart_label = QLabel("📊 Соотношение успешных и неуспешных тестов:")
         pie_chart_label.setFont(QFont("Segoe UI", 12, QFont.Bold))
+        pie_chart_label.setStyleSheet("color: #2c3e50; background-color: transparent;")
         general_layout.addWidget(pie_chart_label)
 
         self.pie_chart_widget = StatisticsChart()
@@ -2383,15 +2516,21 @@ class MainWindow(QMainWindow):
 
         # Настройка детальной статистики
         detailed_layout = QVBoxLayout(self.detailed_stats_tab)
+        detailed_layout.setContentsMargins(10, 10, 10, 10)
 
         results_label = QLabel("📝 История всех тестирований:")
         results_label.setFont(QFont("Segoe UI", 12, QFont.Bold))
+        results_label.setStyleSheet("color: #2c3e50; background-color: transparent;")
         detailed_layout.addWidget(results_label)
 
         self.statsList = QScrollArea()
         self.statsList.setWidgetResizable(True)
+        self.statsList.setStyleSheet("QScrollArea { border: none; background-color: transparent; }")
+
         self.statsContent = QWidget()
+        self.statsContent.setStyleSheet("background-color: transparent;")
         self.statsResultsLayout = QVBoxLayout(self.statsContent)
+        self.statsResultsLayout.setSpacing(10)
         self.statsList.setWidget(self.statsContent)
         detailed_layout.addWidget(self.statsList)
 
