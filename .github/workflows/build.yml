@@ -52,7 +52,8 @@ jobs:
             --hidden-import=encodings.utf_8 `
             --hidden-import=encodings.cp1251 `
             --add-data="styles.qss;." `
-            main.py database.py auth_manager.py login_dialog.py main_window.py statistics_widget.py test_window.py viewer_widget.py design.ui
+            --add-data="design.ui;." `
+            main.py database.py auth_manager.py login_dialog.py main_window.py statistics_widget.py test_window.py viewer_widget.py
 
           if (Test-Path "dist/$exe_name.exe") {
             Write-Host "✅ Сборка x64 успешна"
@@ -118,7 +119,8 @@ jobs:
             --hidden-import=encodings.utf_8 `
             --hidden-import=encodings.cp1251 `
             --add-data="styles.qss;." `
-            main.py database.py auth_manager.py login_dialog.py main_window.py statistics_widget.py test_window.py viewer_widget.py design.ui
+            --add-data="design.ui;." `
+            main.py database.py auth_manager.py login_dialog.py main_window.py statistics_widget.py test_window.py viewer_widget.py
 
           if (Test-Path "dist/$exe_name.exe") {
             Write-Host "✅ Сборка x86 успешна"
