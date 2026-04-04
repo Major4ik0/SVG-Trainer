@@ -47,7 +47,6 @@ class TestWindow(QDialog):
             QFrame {
                 background-color: #ffffff;
                 border-radius: 12px;
-                border: 1px solid #dee2e6;
             }
         """)
         top_layout = QHBoxLayout(top_panel)
@@ -85,7 +84,6 @@ class TestWindow(QDialog):
             QPushButton {
                 background-color: #e74c3c;
                 color: white;
-                border: none;
                 border-radius: 8px;
                 padding: 8px 16px;
                 font-size: 13px;
@@ -108,7 +106,7 @@ class TestWindow(QDialog):
         self.progress_bar.setMinimumHeight(20)
         self.progress_bar.setStyleSheet("""
             QProgressBar {
-                border: none;
+                border: none;  /* Добавить эту строку */
                 border-radius: 10px;
                 background-color: #e9ecef;
                 text-align: center;
@@ -137,7 +135,7 @@ class TestWindow(QDialog):
         self.main_scroll.setStyleSheet("""
             QScrollArea {
                 background-color: transparent;
-                border: none;
+                border: none;  /* Добавить эту строку */
             }
             QScrollBar:vertical {
                 background: #e9ecef;
@@ -166,7 +164,6 @@ class TestWindow(QDialog):
             QFrame {
                 background-color: white;
                 border-radius: 15px;
-                border: 1px solid #dee2e6;
             }
         """)
         card_layout = QVBoxLayout(self.question_card)
@@ -211,7 +208,6 @@ class TestWindow(QDialog):
             QFrame {
                 background-color: white;
                 border-radius: 15px;
-                border: 1px solid #dee2e6;
             }
         """)
         options_layout = QVBoxLayout(options_card)
@@ -226,10 +222,6 @@ class TestWindow(QDialog):
         options_header.addWidget(options_label)
         options_header.addStretch()
 
-        self.answer_type_label = QLabel("✓ Можно выбрать несколько вариантов")
-        self.answer_type_label.setFont(QFont("Arial", 11))
-        self.answer_type_label.setStyleSheet("color: #6c757d;")
-        options_header.addWidget(self.answer_type_label)
         options_layout.addLayout(options_header)
 
         # Сетка для вариантов ответов (2x2)
@@ -244,7 +236,7 @@ class TestWindow(QDialog):
         for i in range(4):
             # Создаем контейнер для радио-кнопки с текстом
             radio_container = QWidget()
-            radio_container.setStyleSheet("background-color: #f8f9fa; border-radius: 10px; border: 1px solid #dee2e6;")
+            radio_container.setStyleSheet("background-color: #f8f9fa; border-radius: 10px;")
             radio_container_layout = QHBoxLayout(radio_container)
             radio_container_layout.setContentsMargins(12, 12, 12, 12)
 
@@ -253,16 +245,21 @@ class TestWindow(QDialog):
                 QRadioButton {
                     spacing: 12px;
                     color: #2c3e50;
+                    border: none;
                 }
                 QRadioButton::indicator {
-                    width: 16px;
-                    height: 16px;
-                    border-radius: 8px;
-                    border: 2px solid #3498db;
+                    width: 18px;
+                    height: 18px;
+                    border-radius: 9px;
                     background-color: white;
+                    border: 2px solid #3498db;
                 }
                 QRadioButton::indicator:checked {
                     background-color: #3498db;
+                    border: 2px solid #3498db;
+                }
+                QRadioButton::indicator:hover {
+                    border: 2px solid #2980b9;
                 }
             """)
             radio_container_layout.addWidget(radio)
@@ -277,8 +274,7 @@ class TestWindow(QDialog):
 
             # Создаем контейнер для чекбокса с текстом
             checkbox_container = QWidget()
-            checkbox_container.setStyleSheet(
-                "background-color: #f8f9fa; border-radius: 10px; border: 1px solid #dee2e6;")
+            checkbox_container.setStyleSheet("background-color: #f8f9fa; border-radius: 10px;")
             checkbox_container_layout = QHBoxLayout(checkbox_container)
             checkbox_container_layout.setContentsMargins(12, 12, 12, 12)
 
@@ -287,17 +283,21 @@ class TestWindow(QDialog):
                 QCheckBox {
                     spacing: 12px;
                     color: #2c3e50;
+                    border: none;
                 }
                 QCheckBox::indicator {
-                    width: 16px;
-                    height: 16px;
+                    width: 18px;
+                    height: 18px;
                     border-radius: 4px;
-                    border: 2px solid #3498db;
                     background-color: white;
+                    border: 2px solid #3498db;
                 }
                 QCheckBox::indicator:checked {
-                    background-color: #27ae60;
-                    border-color: #27ae60;
+                    background-color: #3498db;
+                    border: 2px solid #3498db;
+                }
+                QCheckBox::indicator:hover {
+                    border: 2px solid #2980b9;
                 }
             """)
             checkbox_container_layout.addWidget(checkbox)
@@ -324,7 +324,6 @@ class TestWindow(QDialog):
             QFrame {
                 background-color: #f8f9fa;
                 border-radius: 12px;
-                border-left: 4px solid #3498db;
                 padding: 15px;
             }
         """)
@@ -350,7 +349,6 @@ class TestWindow(QDialog):
             QFrame {
                 background-color: #ffffff;
                 border-radius: 12px;
-                border: 1px solid #dee2e6;
             }
         """)
         bottom_layout = QHBoxLayout(bottom_panel)
@@ -363,7 +361,6 @@ class TestWindow(QDialog):
             QPushButton {
                 background-color: #6c757d;
                 color: white;
-                border: none;
                 border-radius: 8px;
                 padding: 10px 20px;
                 font-size: 13px;
@@ -392,7 +389,7 @@ class TestWindow(QDialog):
                 background-color: #f8f9fa;
                 padding: 8px 18px;
                 border-radius: 20px;
-                border: 1px solid #dee2e6;
+                border: none;  /* Добавить эту строку */
             }
         """)
         bottom_layout.addWidget(self.questions_indicator)
@@ -406,7 +403,6 @@ class TestWindow(QDialog):
                 QPushButton {
                     background-color: #27ae60;
                     color: white;
-                    border: none;
                     border-radius: 8px;
                     padding: 10px 20px;
                     font-size: 13px;
@@ -427,7 +423,6 @@ class TestWindow(QDialog):
                 QPushButton {
                     background-color: #3498db;
                     color: white;
-                    border: none;
                     border-radius: 8px;
                     padding: 10px 20px;
                     font-size: 13px;
@@ -454,7 +449,6 @@ class TestWindow(QDialog):
             QPushButton {
                 background-color: #3498db;
                 color: white;
-                border: none;
                 border-radius: 8px;
                 padding: 10px 20px;
                 font-size: 13px;
@@ -478,13 +472,6 @@ class TestWindow(QDialog):
         correct_count = bin(q['correct_mask']).count("1")
         is_multiple = correct_count > 1
 
-        # Обновляем тип ответа
-        if is_multiple:
-            self.answer_type_label.setText("☑️ Можно выбрать несколько вариантов")
-            self.answer_type_label.setStyleSheet("color: #27ae60;")
-        else:
-            self.answer_type_label.setText("🔘 Выберите один вариант")
-            self.answer_type_label.setStyleSheet("color: #e74c3c;")
 
         # Показываем нужные виджеты и обновляем текст
         options = [q['option1'], q['option2'], q['option3'], q['option4']]
@@ -515,20 +502,23 @@ class TestWindow(QDialog):
         # Текст вопроса
         self.question_label.setText(q['text'])
 
-        # Загрузка изображения
-        if q.get('image_path') and os.path.exists(q['image_path']):
-            pixmap = QPixmap(q['image_path'])
+        # Загрузка изображения - СКРЫВАЕМ ЕСЛИ НЕТ
+        image_path = q.get('image_path')
+        if image_path and os.path.exists(image_path) and os.path.isfile(image_path):
+            pixmap = QPixmap(image_path)
             if not pixmap.isNull():
                 scaled_pixmap = pixmap.scaled(500, 250, Qt.KeepAspectRatio, Qt.SmoothTransformation)
                 self.image_label.setPixmap(scaled_pixmap)
                 self.image_label.setText("")
                 self.image_container.setVisible(True)
             else:
-                self.image_label.setText("⚠️ Не удалось загрузить изображение")
-                self.image_container.setVisible(True)
+                # Изображение есть но не загрузилось - скрываем
+                self.image_container.setVisible(False)
         else:
-            self.image_label.setText("📷 Изображение отсутствует")
-            self.image_container.setVisible(True)
+            # Нет изображения - полностью скрываем контейнер
+            self.image_container.setVisible(False)
+            self.image_label.clear()
+            self.image_label.setText("")
 
         # Скрываем карточку обратной связи
         self.feedback_card.setVisible(False)
@@ -539,13 +529,13 @@ class TestWindow(QDialog):
         for i in range(4):
             # Сброс радио-контейнеров
             radio, radio_label, radio_container = self.radio_buttons[i]
-            radio_container.setStyleSheet("background-color: #f8f9fa; border-radius: 10px; border: 1px solid #dee2e6;")
+            radio_container.setStyleSheet("background-color: #f8f9fa; border-radius: 10px;")
             radio_label.setStyleSheet("color: #2c3e50; font-size: 13px;")
 
             # Сброс чекбокс-контейнеров
             checkbox, checkbox_label, checkbox_container = self.checkboxes[i]
             checkbox_container.setStyleSheet(
-                "background-color: #f8f9fa; border-radius: 10px; border: 1px solid #dee2e6;")
+                "background-color: #f8f9fa; border-radius: 10px;")
             checkbox_label.setStyleSheet("color: #2c3e50; font-size: 13px;")
 
         # Восстановление сохраненного ответа
@@ -576,14 +566,12 @@ class TestWindow(QDialog):
                             checkbox_container.setStyleSheet("""
                                 background-color: #d4edda;
                                 border-radius: 10px;
-                                border: 2px solid #27ae60;
                             """)
                             checkbox_label.setStyleSheet("color: #27ae60; font-weight: bold; font-size: 13px;")
                         elif not is_correct and is_user_selected:
                             checkbox_container.setStyleSheet("""
                                 background-color: #f8d7da;
                                 border-radius: 10px;
-                                border: 2px solid #e74c3c;
                             """)
                             checkbox_label.setStyleSheet(
                                 "color: #e74c3c; text-decoration: line-through; font-size: 13px;")
@@ -593,14 +581,12 @@ class TestWindow(QDialog):
                             radio_container.setStyleSheet("""
                                 background-color: #d4edda;
                                 border-radius: 10px;
-                                border: 2px solid #27ae60;
                             """)
                             radio_label.setStyleSheet("color: #27ae60; font-weight: bold; font-size: 13px;")
                         elif not is_correct and is_user_selected:
                             radio_container.setStyleSheet("""
                                 background-color: #f8d7da;
                                 border-radius: 10px;
-                                border: 2px solid #e74c3c;
                             """)
                             radio_label.setStyleSheet("color: #e74c3c; text-decoration: line-through; font-size: 13px;")
 
@@ -668,14 +654,12 @@ class TestWindow(QDialog):
                     checkbox_container.setStyleSheet("""
                         background-color: #d4edda;
                         border-radius: 10px;
-                        border: 2px solid #27ae60;
                     """)
                     checkbox_label.setStyleSheet("color: #27ae60; font-weight: bold; font-size: 13px;")
                 elif not correct and is_user_selected:
                     checkbox_container.setStyleSheet("""
                         background-color: #f8d7da;
                         border-radius: 10px;
-                        border: 2px solid #e74c3c;
                     """)
                     checkbox_label.setStyleSheet("color: #e74c3c; text-decoration: line-through; font-size: 13px;")
             else:
@@ -685,14 +669,12 @@ class TestWindow(QDialog):
                     radio_container.setStyleSheet("""
                         background-color: #d4edda;
                         border-radius: 10px;
-                        border: 2px solid #27ae60;
                     """)
                     radio_label.setStyleSheet("color: #27ae60; font-weight: bold; font-size: 13px;")
                 elif not correct and is_user_selected:
                     radio_container.setStyleSheet("""
                         background-color: #f8d7da;
                         border-radius: 10px;
-                        border: 2px solid #e74c3c;
                     """)
                     radio_label.setStyleSheet("color: #e74c3c; text-decoration: line-through; font-size: 13px;")
 

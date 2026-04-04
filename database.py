@@ -376,6 +376,11 @@ class Database:
                 avg_percent = (total_correct / total_questions * 100) if total_questions > 0 else 0
                 passed_tests = sum(1 for r in results if r['passed'])
 
+                # Получаем последний тест (самый новый по дате)
+                last_test = results[0] if results else None
+                last_test_percent = (last_test['score'] / last_test['total'] * 100) if last_test else 0
+                last_test_date = last_test['date'] if last_test else None
+
                 stats.append({
                     'user_id': user['id'],
                     'username': user['username'],
@@ -384,9 +389,10 @@ class Database:
                     'total_correct': total_correct,
                     'total_questions': total_questions,
                     'avg_percent': avg_percent,
+                    'last_test_percent': last_test_percent,  # Результат последнего теста
                     'passed_tests': passed_tests,
                     'failed_tests': len(results) - passed_tests,
-                    'last_test_date': results[0]['date'] if results else None
+                    'last_test_date': last_test_date
                 })
             else:
                 stats.append({
@@ -397,6 +403,7 @@ class Database:
                     'total_correct': 0,
                     'total_questions': 0,
                     'avg_percent': 0,
+                    'last_test_percent': 0,
                     'passed_tests': 0,
                     'failed_tests': 0,
                     'last_test_date': None

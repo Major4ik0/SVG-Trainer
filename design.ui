@@ -24,6 +24,7 @@
     /* ========== ГЛАВНОЕ ОКНО ========== */
     QMainWindow {
         background-color: #f0f2f5;
+        border: none;
     }
 
     /* ========== МЕТКИ ========== */
@@ -86,19 +87,12 @@
 
     /* Кнопки "Обновить" */
     QPushButton#refreshStudyButton,
-    QPushButton#refreshStatsButton,
-    QPushButton#refreshMistakesButton {
+    QPushButton#refreshStatsButton {
         background-color: #6c757d;
     }
     QPushButton#refreshStudyButton:hover,
-    QPushButton#refreshStatsButton:hover,
-    QPushButton#refreshMistakesButton:hover {
+    QPushButton#refreshStatsButton:hover {
         background-color: #5a6268;
-    }
-
-    /* Кнопка "Сменить пользователя" */
-    QPushButton#changeUserButton {
-        background-color: #3498db;
     }
 
     /* ========== ВКЛАДКИ ========== */
@@ -133,7 +127,7 @@
     QFrame {
         background-color: rgba(255, 255, 255, 0.85);
         border-radius: 10px;
-        border: 1px solid #dee2e6;
+        border: none;
     }
 
     /* Верхняя панель */
@@ -282,19 +276,6 @@
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="changeUserButton">
-         <property name="text">
-          <string>🔄 Сменить пользователя</string>
-         </property>
-         <property name="minimumSize">
-          <size>
-           <width>180</width>
-           <height>40</height>
-          </size>
-         </property>
-        </widget>
-       </item>
-       <item>
         <widget class="QPushButton" name="logoutButton">
          <property name="text">
           <string>🚪 Выход</string>
@@ -329,7 +310,7 @@
            <item>
             <widget class="QLabel" name="testTitleLabel">
              <property name="text">
-              <string>🎯 Тестирование знаний</string>
+              <string>Тестирование знаний</string>
              </property>
              <property name="font">
               <font>
@@ -512,7 +493,7 @@
       </widget>
       <widget class="QWidget" name="statsTab">
        <attribute name="title">
-        <string>📊 Статистика</string>
+        <string>📊 Моя статистика</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_7">
         <item>
@@ -576,19 +557,6 @@
              </property>
              <property name="styleSheet">
               <string notr="true">color: #2c3e50;</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QPushButton" name="refreshMistakesButton">
-             <property name="text">
-              <string>🔄 Обновить</string>
-             </property>
-             <property name="minimumSize">
-              <size>
-               <width>120</width>
-               <height>35</height>
-              </size>
              </property>
             </widget>
            </item>

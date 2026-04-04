@@ -62,17 +62,11 @@ class MainWindow(QMainWindow):
         if hasattr(self, 'refreshStatsButton'):
             self.refreshStatsButton.clicked.connect(self.load_stats)
 
-        if hasattr(self, 'refreshMistakesButton'):
-            self.refreshMistakesButton.clicked.connect(self.load_mistakes)
-
-        if hasattr(self, 'changeUserButton'):
-            self.changeUserButton.clicked.connect(self.change_user)
-
         if hasattr(self, 'logoutButton'):
             self.logoutButton.clicked.connect(self.logout)
 
     def setup_study_tab(self):
-        """Настройка вкладки обучения - видна всем пользователям"""
+        """Настройка вкладки обучения - видна всем пользователям с поиском"""
         # Получаем или создаем layout
         layout = self.studyTab.layout()
         if layout is None:
@@ -82,26 +76,55 @@ class MainWindow(QMainWindow):
             # Очищаем layout
             self.clear_layout(layout)
 
-        # Кнопка добавления материала (только для админа)
-        if self.auth_manager.is_admin():
-            addMaterialButton = QPushButton("➕ Добавить учебный материал")
-            addMaterialButton.clicked.connect(self.add_learning_material)
-            addMaterialButton.setStyleSheet("""
-                QPushButton {
-                    background-color: #27ae60;
-                    color: white;
-                    border: none;
-                    border-radius: 8px;
-                    padding: 10px;
-                    font-weight: bold;
-                    margin-bottom: 10px;
-                }
-            """)
-            layout.addWidget(addMaterialButton)
-            self.addMaterialButton = addMaterialButton
-        elif hasattr(self, 'addMaterialButton'):
-            # Если кнопка существовала, но пользователь не админ - удаляем ссылку
-            self.addMaterialButton = None
+        # Панель поиска
+        search_frame = QFrame()
+        search_frame.setStyleSheet("""
+            QFrame {
+                background-color: white;
+                border-radius: 10px;
+                border: 1px solid #dee2e6;
+                padding: 10px;
+            }
+        """)
+        search_layout = QHBoxLayout(search_frame)
+
+        search_icon = QLabel("🔍")
+        search_icon.setStyleSheet("font-size: 10px;")
+        search_layout.addWidget(search_icon)
+
+        self.study_search_edit = QLineEdit()
+        self.study_search_edit.setPlaceholderText("Поиск по названию материала...")
+        self.study_search_edit.setStyleSheet("""
+            QLineEdit {
+                border: none;
+                padding: 1px;
+                font-size: 13px;
+                background-color: transparent;
+            }
+            QLineEdit:focus {
+                border: none;
+            }
+        """)
+        self.study_search_edit.textChanged.connect(self.filter_study_materials)
+        search_layout.addWidget(self.study_search_edit)
+
+        clear_search_btn = QPushButton("✖")
+        clear_search_btn.setFixedSize(30, 30)
+        clear_search_btn.setStyleSheet("""
+            QPushButton {
+                background-color: transparent;
+                color: #6c757d;
+                border: none;
+                font-size: 14px;
+            }
+            QPushButton:hover {
+                color: #e74c3c;
+            }
+        """)
+        clear_search_btn.clicked.connect(lambda: self.study_search_edit.clear())
+        search_layout.addWidget(clear_search_btn)
+
+        layout.addWidget(search_frame)
 
         # Область для материалов (видна всем)
         studyScrollArea = QScrollArea()
@@ -134,6 +157,170 @@ class MainWindow(QMainWindow):
         self.studyScrollArea = studyScrollArea
         self.studyContent = studyContent
         self.studyMaterialsLayout = studyMaterialsLayout
+        self.all_study_materials = []  # Для хранения всех материалов
+
+    def filter_study_materials(self):
+        """Фильтрация учебных материалов по поиску"""
+        search_text = self.study_search_edit.text().strip().lower()
+
+        if not hasattr(self, 'all_study_materials'):
+            return
+
+        if not search_text:
+            filtered_materials = self.all_study_materials
+        else:
+            filtered_materials = [m for m in self.all_study_materials
+                                  if search_text in m['filename'].lower()]
+
+        self.display_study_materials(filtered_materials)
+
+    def display_study_materials(self, materials):
+        """Отображение учебных материалов в таблице"""
+        if not hasattr(self, 'studyMaterialsLayout'):
+            return
+
+        # Очищаем layout
+        for i in reversed(range(self.studyMaterialsLayout.count())):
+            widget = self.studyMaterialsLayout.itemAt(i).widget()
+            if widget:
+                widget.deleteLater()
+
+        if not materials:
+            no_data = QLabel("📭 Нет учебных материалов")
+            no_data.setAlignment(Qt.AlignCenter)
+            no_data.setStyleSheet("color: #6c7086; padding: 40px; font-size: 16px;")
+            self.studyMaterialsLayout.addWidget(no_data)
+            return
+
+        # Создаем контейнер для таблицы с границей
+        table_container = QFrame()
+        table_container.setStyleSheet("""
+            QFrame {
+                background-color: white;
+                border: 1px solid #dee2e6;
+                border-radius: 10px;
+                padding: 0px;
+            }
+        """)
+        container_layout = QVBoxLayout(table_container)
+        container_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Создаем таблицу для материалов
+        table = QTableWidget()
+        table.setColumnCount(3)
+        table.setHorizontalHeaderLabels(["Тип", "Название", ""])
+
+        # Центрирование заголовков
+        header = table.horizontalHeader()
+        header.setDefaultAlignment(Qt.AlignCenter)
+        header.setStretchLastSection(True)
+
+        # Настройка внешнего вида
+        table.setAlternatingRowColors(True)
+        table.setShowGrid(False)
+        table.verticalHeader().setVisible(False)
+        table.setEditTriggers(QTableWidget.NoEditTriggers)
+        table.setSelectionBehavior(QTableWidget.SelectRows)
+        table.setSelectionMode(QTableWidget.SingleSelection)
+
+        # Устанавливаем высоту строк
+        table.verticalHeader().setDefaultSectionSize(50)
+
+        table.setStyleSheet("""
+            QTableWidget {
+                background-color: transparent;
+                border: none;
+                outline: none;
+            }
+            QTableWidget::item {
+                padding: 8px;
+                border-bottom: 1px solid #dee2e6;
+            }
+            QTableWidget::item:selected {
+                background-color: #e3f2fd;
+                color: #2c3e50;
+            }
+            QHeaderView::section {
+                background-color: #f8f9fa;
+                color: #2c3e50;
+                padding: 10px;
+                border: none;
+                border-bottom: 2px solid #dee2e6;
+                font-weight: bold;
+                font-size: 13px;
+            }
+        """)
+
+        table.setRowCount(len(materials))
+
+        for row, material in enumerate(materials):
+            # Тип с иконкой - центрирование
+            file_type = material.get('file_type', 'text')
+            if file_type == 'pdf':
+                type_icon = "📑 PDF"
+                type_color = "#e74c3c"
+            elif file_type == 'image':
+                type_icon = "🖼️ Изображение"
+                type_color = "#27ae60"
+            else:
+                type_icon = "📄 Текст"
+                type_color = "#3498db"
+
+            type_item = QTableWidgetItem(type_icon)
+            type_item.setForeground(QColor(type_color))
+            type_item.setTextAlignment(Qt.AlignCenter)
+            table.setItem(row, 0, type_item)
+
+            # Название - центрирование полностью
+            name_item = QTableWidgetItem(material['filename'])
+            name_item.setToolTip(material.get('description', ''))
+            name_item.setTextAlignment(Qt.AlignCenter)
+            table.setItem(row, 1, name_item)
+
+            # Кнопка открытия
+            open_btn = QPushButton("📖 Открыть")
+            open_btn.setFixedSize(90, 34)
+            open_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #3498db;
+                    color: white;
+                    border: none;
+                    border-radius: 5px;
+                    font-size: 11px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #2980b9;
+                }
+                QPushButton:pressed {
+                    background-color: #1c6ea4;
+                }
+            """)
+            open_btn.clicked.connect(lambda checked, m=material: self.open_material(m))
+
+            # Устанавливаем кнопку
+            table.setCellWidget(row, 2, open_btn)
+
+        # Настройка ширины колонок
+        table.setColumnWidth(0, 130)  # Тип
+        table.setColumnWidth(1, 450)  # Название
+
+        # Центрирование кнопок
+        for row in range(len(materials)):
+            btn = table.cellWidget(row, 2)
+            if btn:
+                cell_widget = QWidget()
+                cell_layout = QHBoxLayout(cell_widget)
+                cell_layout.setContentsMargins(0, 0, 0, 0)
+                cell_layout.setAlignment(Qt.AlignCenter)
+                cell_layout.addWidget(btn)
+                table.setCellWidget(row, 2, cell_widget)
+
+        # Подключаем двойной клик для открытия
+        table.cellDoubleClicked.connect(lambda row, col: self.open_material(materials[row]))
+
+        container_layout.addWidget(table)
+        self.studyMaterialsLayout.addWidget(table_container)
 
     def view_user_full_stats(self, user_id):
         """Просмотр полной статистики пользователя (для админа)"""
@@ -145,73 +332,120 @@ class MainWindow(QMainWindow):
         results = self.db.get_user_test_results(user_id)
 
         dialog = QDialog(self)
-        dialog.setWindowTitle(f"📊 Полная статистика: {user['full_name']}")
+        dialog.setWindowTitle(f"Полная статистика: {user['full_name']}")
         dialog.setMinimumSize(1000, 800)
+        dialog.resize(1100, 850)
+        dialog.setModal(True)
         dialog.setStyleSheet("""
             QDialog {
-                background-color: #1e1e2e;
+                background-color: #f0f2f5;
             }
             QLabel {
-                color: #cdd6f4;
+                color: #2c3e50;
             }
             QPushButton {
-                background-color: #89b4fa;
-                color: #1e1e2e;
+                background-color: #3498db;
+                color: white;
                 border: none;
                 border-radius: 8px;
                 padding: 8px 16px;
                 font-weight: bold;
+                font-size: 13px;
             }
             QPushButton:hover {
-                background-color: #b4befe;
+                background-color: #2980b9;
             }
             QTabWidget::pane {
-                background-color: #313244;
+                background-color: white;
+                border: 1px solid #dee2e6;
                 border-radius: 10px;
             }
             QTabBar::tab {
-                background-color: #f5f5f5;
-                color: #cdd6f4;
-                padding: 8px 16px;
-                border-radius: 5px;
+                background-color: #e9ecef;
+                color: #495057;
+                padding: 10px 20px;
+                margin-right: 5px;
+                border-top-left-radius: 8px;
+                border-top-right-radius: 8px;
             }
             QTabBar::tab:selected {
-                background-color: #89b4fa;
-                color: #1e1e2e;
+                background-color: #3498db;
+                color: white;
+            }
+            QTabBar::tab:hover:!selected {
+                background-color: #dee2e6;
+            }
+            QScrollArea {
+                border: none;
+                background-color: transparent;
+            }
+            QScrollBar:vertical {
+                background: #e9ecef;
+                width: 8px;
+                border-radius: 4px;
+            }
+            QScrollBar::handle:vertical {
+                background: #3498db;
+                border-radius: 4px;
             }
         """)
 
-        layout = QVBoxLayout(dialog)
+        # Основной layout
+        main_layout = QVBoxLayout(dialog)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Scroll area для всего содержимого
+        main_scroll = QScrollArea()
+        main_scroll.setWidgetResizable(True)
+        main_scroll.setStyleSheet("border: none; background-color: transparent;")
+
+        # Контейнер для содержимого
+        content_widget = QWidget()
+        content_widget.setStyleSheet("background-color: #f0f2f5;")
+        layout = QVBoxLayout(content_widget)
+        layout.setSpacing(15)
+        layout.setContentsMargins(20, 20, 20, 20)
 
         # Информация о пользователе
+        info_frame = QFrame()
+        info_frame.setStyleSheet("""
+            QFrame {
+                background-color: white;
+                border-radius: 15px;
+                border: 1px solid #dee2e6;
+            }
+        """)
+        info_layout = QVBoxLayout(info_frame)
+        info_layout.setContentsMargins(20, 20, 20, 20)
+
         info_text = f"""
-        <div style='background-color: #ffffff; border-radius: 15px; padding: 20px; text-align: center; border: 1px solid #dee2e6;'>
-            <h2 style='color: #2c3e50;'>👤 {user['full_name']}</h2>
-            <p style='color: #495057;'><b>Логин:</b> {user['username']}</p>
-            <hr style='border-color: #dee2e6;'>
-            <table style='width: 100%; margin-top: 10px;'>
+        <div style='text-align: center;'>
+            <h2 style='color: #2c3e50; margin: 0 0 10px 0;'>👤 {user['full_name']}</h2>
+            <p style='color: #6c757d; margin: 5px 0;'><b>Логин:</b> {user['username']}</p>
+            <hr style='border-color: #dee2e6; margin: 15px 0;'>
+            <table style='width: 100%;'>
                 <tr>
-                    <td style='padding: 8px; color: #495057;'><b>📝 Всего тестов:</b></td>
+                    <td style='padding: 8px;'><b>📝 Всего тестов:</b></td>
                     <td style='padding: 8px; color: #2c3e50;'>{stats['total_tests']}</td>
-                    <td style='padding: 8px; color: #495057;'><b>✅ Сдано:</b></td>
+                    <td style='padding: 8px;'><b>✅ Сдано:</b></td>
                     <td style='padding: 8px; color: #27ae60;'>{stats['passed_tests']}</td>
                 </tr>
                 <tr>
-                    <td style='padding: 8px; color: #495057;'><b>❌ Не сдано:</b></td>
+                    <td style='padding: 8px;'><b>❌ Не сдано:</b></td>
                     <td style='padding: 8px; color: #e74c3c;'>{stats['failed_tests']}</td>
-                    <td style='padding: 8px; color: #495057;'><b>📈 Средний балл:</b></td>
+                    <td style='padding: 8px;'><b>📈 Средний балл:</b></td>
                     <td style='padding: 8px; color: #2c3e50;'>{stats['avg_percent']:.1f}%</td>
                 </tr>
                 <tr>
-                    <td style='padding: 8px; color: #495057;'><b>✅ Верных ответов:</b></td>
+                    <td style='padding: 8px;'><b>✅ Верных ответов:</b></td>
                     <td style='padding: 8px; color: #2c3e50;'>{stats['total_correct']}</td>
-                    <td style='padding: 8px; color: #495057;'><b>📝 Всего вопросов:</b></td>
+                    <td style='padding: 8px;'><b>📝 Всего вопросов:</b></td>
                     <td style='padding: 8px; color: #2c3e50;'>{stats['total_questions']}</td>
                 </tr>
                 <tr>
-                    <td style='padding: 8px; color: #495057;'><b>🏆 Лучший результат:</b></td>
+                    <td style='padding: 8px;'><b>🏆 Лучший результат:</b></td>
                     <td style='padding: 8px; color: #27ae60;'>{stats['best_result']:.1f}%</td>
-                    <td style='padding: 8px; color: #495057;'><b>📉 Худший результат:</b></td>
+                    <td style='padding: 8px;'><b>📉 Худший результат:</b></td>
                     <td style='padding: 8px; color: #e74c3c;'>{stats['worst_result']:.1f}%</td>
                 </tr>
             </table>
@@ -219,22 +453,54 @@ class MainWindow(QMainWindow):
         """
         info_label = QLabel(info_text)
         info_label.setWordWrap(True)
-        layout.addWidget(info_label)
+        info_label.setStyleSheet("background-color: transparent;")
+        info_layout.addWidget(info_label)
+        layout.addWidget(info_frame)
 
         # Вкладки с графиками и деталями
         tabs = QTabWidget()
+        tabs.setStyleSheet("""
+            QTabWidget::pane {
+                background-color: white;
+                border: 1px solid #dee2e6;
+                border-radius: 10px;
+            }
+            QTabBar::tab {
+                background-color: #e9ecef;
+                color: #495057;
+                padding: 10px 20px;
+                margin-right: 5px;
+                border-top-left-radius: 8px;
+                border-top-right-radius: 8px;
+            }
+            QTabBar::tab:selected {
+                background-color: #3498db;
+                color: white;
+            }
+        """)
 
         # Вкладка с графиками
         charts_tab = QWidget()
         charts_layout = QVBoxLayout(charts_tab)
+        charts_layout.setContentsMargins(15, 15, 15, 15)
 
         # График динамики
+        chart_label = QLabel("📈 Динамика результатов тестирования")
+        chart_label.setFont(QFont("Segoe UI", 12, QFont.Bold))
+        chart_label.setStyleSheet("color: #2c3e50; margin-bottom: 10px;")
+        charts_layout.addWidget(chart_label)
+
         chart_widget = StatisticsChart()
         chart_widget.update_chart(results, passing_threshold=80)
         charts_layout.addWidget(chart_widget)
 
         # Круговая диаграмма
         if stats['total_tests'] > 0:
+            pie_label = QLabel("📊 Соотношение результатов")
+            pie_label.setFont(QFont("Segoe UI", 12, QFont.Bold))
+            pie_label.setStyleSheet("color: #2c3e50; margin: 20px 0 10px 0;")
+            charts_layout.addWidget(pie_label)
+
             pie_widget = StatisticsChart()
             pie_widget.create_pie_chart(
                 [stats['passed_tests'], stats['failed_tests']],
@@ -243,54 +509,159 @@ class MainWindow(QMainWindow):
             )
             charts_layout.addWidget(pie_widget)
 
+        charts_layout.addStretch()
         tabs.addTab(charts_tab, "📊 Графики")
 
         # Вкладка с детальными результатами
         details_tab = QWidget()
         details_layout = QVBoxLayout(details_tab)
+        details_layout.setContentsMargins(15, 15, 15, 15)
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
+        scroll.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background-color: transparent;
+            }
+            QScrollBar:vertical {
+                background: #e9ecef;
+                width: 8px;
+                border-radius: 4px;
+            }
+            QScrollBar::handle:vertical {
+                background: #3498db;
+                border-radius: 4px;
+            }
+        """)
+
         scroll_widget = QWidget()
+        scroll_widget.setStyleSheet("background-color: transparent;")
         scroll_layout = QVBoxLayout(scroll_widget)
+        scroll_layout.setSpacing(10)
 
-        for i, result in enumerate(results, 1):
-            card = QFrame()
-            card.setStyleSheet("background-color: #f5f5f5; border-radius: 10px; margin: 5px; padding: 10px;")
+        if results:
+            for i, result in enumerate(results, 1):
+                card = QFrame()
+                card.setStyleSheet("""
+                    QFrame {
+                        background-color: #f8f9fa;
+                        border-radius: 12px;
+                        border: 1px solid #dee2e6;
+                        margin: 5px;
+                    }
+                    QFrame:hover {
+                        background-color: #f0f2f5;
+                    }
+                """)
 
-            percent = result['score'] / result['total'] * 100
-            status = "✅ Сдано" if result['passed'] else "❌ Не сдано"
-            status_color = "#a6e3a1" if result['passed'] else "#f38ba8"
+                percent = result['score'] / result['total'] * 100
+                status = "✅ Сдано" if result['passed'] else "❌ Не сдано"
+                status_color = "#27ae60" if result['passed'] else "#e74c3c"
+                status_bg = "#d4edda" if result['passed'] else "#f8d7da"
 
-            date_obj = datetime.fromisoformat(result['date'].replace(' ', 'T'))
-            date_str = date_obj.strftime('%d.%m.%Y %H:%M:%S')
+                date_obj = datetime.fromisoformat(result['date'].replace(' ', 'T'))
+                date_str = date_obj.strftime('%d.%m.%Y %H:%M:%S')
 
-            card_layout = QVBoxLayout(card)
+                card_layout = QVBoxLayout(card)
+                card_layout.setSpacing(10)
+                card_layout.setContentsMargins(15, 12, 15, 12)
 
-            title_label = QLabel(f"<b>Попытка #{i}</b> | 📅 {date_str}")
-            title_label.setStyleSheet("color: #89b4fa; font-size: 14px;")
-            card_layout.addWidget(title_label)
+                # Заголовок
+                header_layout = QHBoxLayout()
 
-            result_label = QLabel(f"📊 Результат: {result['score']}/{result['total']} ({percent:.1f}%) - {status}")
-            result_label.setStyleSheet(f"color: {status_color};")
-            card_layout.addWidget(result_label)
+                title_label = QLabel(f"<b>Попытка #{i}</b>")
+                title_label.setStyleSheet("color: #3498db; font-size: 14px;")
+                header_layout.addWidget(title_label)
 
-            view_btn = QPushButton("📖 Посмотреть детали")
-            view_btn.clicked.connect(lambda checked, rid=result['id']: self.view_test_details(rid))
-            card_layout.addWidget(view_btn)
+                header_layout.addStretch()
 
-            scroll_layout.addWidget(card)
+                date_label = QLabel(f"📅 {date_str}")
+                date_label.setStyleSheet("color: #6c757d; font-size: 11px;")
+                header_layout.addWidget(date_label)
 
+                card_layout.addLayout(header_layout)
+
+                # Результат
+                result_layout = QHBoxLayout()
+
+                result_label = QLabel(f"📊 Результат: <b>{result['score']}/{result['total']}</b> ({percent:.1f}%)")
+                result_label.setStyleSheet("color: #2c3e50;")
+                result_layout.addWidget(result_label)
+
+                result_layout.addStretch()
+
+                status_label = QLabel(status)
+                status_label.setStyleSheet(f"""
+                    QLabel {{
+                        color: {status_color};
+                        background-color: {status_bg};
+                        padding: 4px 12px;
+                        border-radius: 12px;
+                        font-size: 11px;
+                        font-weight: bold;
+                    }}
+                """)
+                result_layout.addWidget(status_label)
+
+                card_layout.addLayout(result_layout)
+
+                # Кнопка просмотра деталей
+                view_btn = QPushButton("📖 Посмотреть детали")
+                view_btn.setStyleSheet("""
+                    QPushButton {
+                        background-color: #3498db;
+                        color: white;
+                        border: none;
+                        border-radius: 6px;
+                        padding: 6px 12px;
+                        font-size: 12px;
+                    }
+                    QPushButton:hover {
+                        background-color: #2980b9;
+                    }
+                """)
+                view_btn.clicked.connect(lambda checked, rid=result['id']: self.view_test_details(rid))
+                card_layout.addWidget(view_btn)
+
+                scroll_layout.addWidget(card)
+        else:
+            no_data_label = QLabel("📭 Нет пройденных тестов")
+            no_data_label.setAlignment(Qt.AlignCenter)
+            no_data_label.setStyleSheet("color: #6c757d; padding: 40px; font-size: 14px;")
+            scroll_layout.addWidget(no_data_label)
+
+        scroll_layout.addStretch()
         scroll.setWidget(scroll_widget)
         details_layout.addWidget(scroll)
         tabs.addTab(details_tab, "📋 Детальные результаты")
 
         layout.addWidget(tabs)
 
+        # Кнопка закрытия
         close_btn = QPushButton("✖ Закрыть")
-        close_btn.clicked.connect(dialog.accept)
-        layout.addWidget(close_btn)
+        close_btn.setMinimumWidth(120)
+        close_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #3498db;
+                margin-top: 10px;
+                padding: 10px;
+            }
+            QPushButton:hover {
+                background-color: #5a6268;
+            }
+        """)
 
+        btn_layout = QHBoxLayout()
+        btn_layout.addStretch()
+        btn_layout.addWidget(close_btn)
+        btn_layout.addStretch()
+        layout.addLayout(btn_layout)
+
+        main_scroll.setWidget(content_widget)
+        main_layout.addWidget(main_scroll)
+
+        close_btn.clicked.connect(dialog.accept)
         dialog.exec_()
 
     def setup_mistakes_tab(self):
@@ -313,27 +684,6 @@ class MainWindow(QMainWindow):
         header_layout.addWidget(mistakesLabel)
 
         header_layout.addStretch()
-
-        # Создаем НОВУЮ кнопку обновления (старая могла быть удалена)
-        refreshMistakesButton = QPushButton("🔄 Обновить")
-        refreshMistakesButton.setStyleSheet("""
-            QPushButton {
-                background-color: #6c757d;
-                color: white;
-                border: none;
-                border-radius: 8px;
-                padding: 8px 16px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #5a6268;
-            }
-        """)
-        refreshMistakesButton.clicked.connect(self.load_mistakes)
-        header_layout.addWidget(refreshMistakesButton)
-
-        # Сохраняем ссылку на кнопку для использования в других методах
-        self.refreshMistakesButton = refreshMistakesButton
 
         layout.addLayout(header_layout)
 
@@ -397,15 +747,20 @@ class MainWindow(QMainWindow):
 
         # Используем QTableWidget для красивого отображения
         self.users_table = QTableWidget()
-        self.users_table.setColumnCount(4)
-        self.users_table.setHorizontalHeaderLabels(["ID", "ФИО", "Логин", "Действия"])
+        self.users_table.setColumnCount(3)
+        self.users_table.setHorizontalHeaderLabels(["ФИО", "Логин", "Действия"])
         self.users_table.horizontalHeader().setStretchLastSection(True)
         self.users_table.setAlternatingRowColors(True)
+        self.users_table.setStyleSheet("""
+            QTableCornerButton::section {
+                background-color: transparent;
+                border: none;
+            }
+        """)
 
         # Настройка ширины колонок
-        self.users_table.setColumnWidth(0, 50)  # ID
-        self.users_table.setColumnWidth(1, 250)  # ФИО
-        self.users_table.setColumnWidth(2, 150)  # Логин
+        self.users_table.setColumnWidth(0, 400)  # ID
+        self.users_table.setColumnWidth(1, 400)  # ФИО
         # Колонка "Действия" растягивается автоматически
 
         layout.addWidget(self.users_table)
@@ -422,29 +777,152 @@ class MainWindow(QMainWindow):
 
         # Таблица вопросов
         self.questions_table = QTableWidget()
-        self.questions_table.setColumnCount(3)
-        self.questions_table.setHorizontalHeaderLabels(["ID", "Вопрос", "Действия"])
+        self.questions_table.setColumnCount(2)
+        self.questions_table.setHorizontalHeaderLabels(["Вопрос", "Действия"])
         self.questions_table.horizontalHeader().setStretchLastSection(True)
         self.questions_table.setAlternatingRowColors(True)
+        self.questions_table.setStyleSheet("""
+            QTableCornerButton::section {
+                background-color: transparent;
+                border: none;
+            }
+        """)
+
+        self.questions_table.setColumnWidth(0, 850)  # ID
         layout.addWidget(self.questions_table)
 
         self.load_questions_list()
 
     def setup_admin_materials_tab(self):
+        """Настройка админской вкладки материалов с поиском"""
         layout = QVBoxLayout(self.admin_materials_tab)
 
         add_button = QPushButton("➕ Добавить учебный материал")
         add_button.clicked.connect(self.add_learning_material)
         layout.addWidget(add_button)
 
+        # Панель поиска
+        search_frame = QFrame()
+        search_frame.setStyleSheet("""
+            QFrame {
+                background-color: white;
+                border-radius: 10px;
+                border: 1px solid #dee2e6;
+                padding: 8px;
+                margin-top: 10px;
+            }
+        """)
+        search_layout = QHBoxLayout(search_frame)
+
+        search_icon = QLabel("🔍")
+        search_icon.setStyleSheet("font-size: 10px;")
+        search_layout.addWidget(search_icon)
+
+        self.admin_materials_search_edit = QLineEdit()
+        self.admin_materials_search_edit.setPlaceholderText("Поиск по названию материала...")
+        self.admin_materials_search_edit.setStyleSheet("""
+            QLineEdit {
+                border: none;
+                padding: 1px;
+                font-size: 13px;
+                background-color: transparent;
+            }
+        """)
+        self.admin_materials_search_edit.textChanged.connect(self.filter_admin_materials)
+        search_layout.addWidget(self.admin_materials_search_edit)
+
+        clear_search_btn = QPushButton("✖")
+        clear_search_btn.setFixedSize(30, 30)
+        clear_search_btn.setStyleSheet("""
+            QPushButton {
+                background-color: transparent;
+                color: #6c757d;
+                border: none;
+                font-size: 14px;
+            }
+            QPushButton:hover {
+                color: #e74c3c;
+            }
+        """)
+        clear_search_btn.clicked.connect(lambda: self.admin_materials_search_edit.clear())
+        search_layout.addWidget(clear_search_btn)
+
+        layout.addWidget(search_frame)
+
         self.admin_materials_table = QTableWidget()
         self.admin_materials_table.setColumnCount(3)
         self.admin_materials_table.setHorizontalHeaderLabels(["Название", "Тип", "Действия"])
+        self.admin_materials_table.setStyleSheet("""
+            QTableCornerButton::section {
+                background-color: transparent;
+                border: none;
+            }
+            QTableWidget {
+                background-color: white;
+                border: 1px solid #dee2e6;
+                border-radius: 10px;
+            }
+            QHeaderView::section {
+                background-color: #f8f9fa;
+                color: #2c3e50;
+                padding: 8px;
+                border: none;
+                border-bottom: 2px solid #dee2e6;
+                font-weight: bold;
+            }
+        """)
+        self.admin_materials_table.setColumnWidth(0, 600)
+        self.admin_materials_table.setColumnWidth(1, 150)
         self.admin_materials_table.horizontalHeader().setStretchLastSection(True)
         self.admin_materials_table.setAlternatingRowColors(True)
         layout.addWidget(self.admin_materials_table)
 
         self.load_admin_materials()
+
+    def filter_admin_materials(self):
+        """Фильтрация материалов в админской таблице"""
+        search_text = self.admin_materials_search_edit.text().strip().lower()
+
+        if not hasattr(self, 'all_admin_materials'):
+            return
+
+        if not search_text:
+            filtered_materials = self.all_admin_materials
+        else:
+            filtered_materials = [m for m in self.all_admin_materials
+                                  if search_text in m['filename'].lower()]
+
+        self.display_admin_materials(filtered_materials)
+
+    def display_admin_materials(self, materials):
+        """Отображение материалов в админской таблице"""
+        self.admin_materials_table.setRowCount(0)
+
+        for material in materials:
+            row = self.admin_materials_table.rowCount()
+            self.admin_materials_table.insertRow(row)
+
+            self.admin_materials_table.setItem(row, 0, QTableWidgetItem(material['filename']))
+
+            file_type = material['file_type']
+            type_icon = "📄" if file_type == 'text' else "🖼" if file_type == 'image' else "📑"
+            self.admin_materials_table.setItem(row, 1, QTableWidgetItem(f"{type_icon} {file_type.upper()}"))
+
+            delete_btn = QPushButton("🗑 Удалить")
+            delete_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #3498db;
+                    color: white;
+                    border: none;
+                    border-radius: 5px;
+                    padding: 5px 10px;
+                }
+                QPushButton:hover {
+                    background-color: #3498db;
+                }
+            """)
+            delete_btn.clicked.connect(lambda checked, mid=material['id']: self.delete_material(mid))
+            self.admin_materials_table.setCellWidget(row, 2, delete_btn)
 
     def load_users_list(self):
         """Загрузка пользователей в таблицу"""
@@ -458,9 +936,8 @@ class MainWindow(QMainWindow):
             row = self.users_table.rowCount()
             self.users_table.insertRow(row)
 
-            self.users_table.setItem(row, 0, QTableWidgetItem(str(user['id'])))
-            self.users_table.setItem(row, 1, QTableWidgetItem(user['full_name']))
-            self.users_table.setItem(row, 2, QTableWidgetItem(user['username']))
+            self.users_table.setItem(row, 0, QTableWidgetItem(user['full_name']))
+            self.users_table.setItem(row, 1, QTableWidgetItem(user['username']))
 
             # Создаем виджет с кнопками
             buttons_widget = QWidget()
@@ -473,13 +950,13 @@ class MainWindow(QMainWindow):
             edit_btn.clicked.connect(lambda checked, uid=user['id']: self.edit_user(uid))
             edit_btn.setStyleSheet("""
                 QPushButton {
-                    background-color: #f9e2af;
-                    color: #1e1e2e;
+                    background-color: #3498db;
+                    color: #fff;
                     padding: 5px 10px;
                     font-size: 11px;
                 }
                 QPushButton:hover {
-                    background-color: #f9e2af;
+                    background-color: #3498db;
                     opacity: 0.8;
                 }
             """)
@@ -489,20 +966,20 @@ class MainWindow(QMainWindow):
             delete_btn.clicked.connect(lambda checked, uid=user['id']: self.delete_user(uid))
             delete_btn.setStyleSheet("""
                 QPushButton {
-                    background-color: #f38ba8;
-                    color: #1e1e2e;
+                    background-color: #3498db;
+                    color: #fff;
                     padding: 5px 10px;
                     font-size: 11px;
                 }
                 QPushButton:hover {
-                    background-color: #f38ba8;
+                    background-color: #3498db;
                     opacity: 0.8;
                 }
             """)
 
             buttons_layout.addWidget(edit_btn)
             buttons_layout.addWidget(delete_btn)
-            self.users_table.setCellWidget(row, 3, buttons_widget)
+            self.users_table.setCellWidget(row, 2, buttons_widget)
 
     def load_questions_list(self):
         """Загрузка вопросов в таблицу"""
@@ -513,8 +990,7 @@ class MainWindow(QMainWindow):
             row = self.questions_table.rowCount()
             self.questions_table.insertRow(row)
 
-            self.questions_table.setItem(row, 0, QTableWidgetItem(str(q['id'])))
-            self.questions_table.setItem(row, 1, QTableWidgetItem(q['text'][:100] + "..."))
+            self.questions_table.setItem(row, 0, QTableWidgetItem(q['text'][:100] + "..."))
 
             # Кнопки действий
             buttons_widget = QWidget()
@@ -528,139 +1004,19 @@ class MainWindow(QMainWindow):
 
             buttons_layout.addWidget(edit_btn)
             buttons_layout.addWidget(delete_btn)
-            self.questions_table.setCellWidget(row, 2, buttons_widget)
+            self.questions_table.setCellWidget(row, 1, buttons_widget)
 
     def load_admin_materials(self):
         """Загрузка материалов в таблицу для админа"""
-        self.admin_materials_table.setRowCount(0)
         materials = self.db.get_all_learning_materials()
-
-        for material in materials:
-            row = self.admin_materials_table.rowCount()
-            self.admin_materials_table.insertRow(row)
-
-            self.admin_materials_table.setItem(row, 0, QTableWidgetItem(material['filename']))
-
-            file_type = material['file_type']
-            type_icon = "📄" if file_type == 'text' else "🖼" if file_type == 'image' else "📑"
-            self.admin_materials_table.setItem(row, 1, QTableWidgetItem(f"{type_icon} {file_type.upper()}"))
-
-            # Кнопка удаления
-            delete_btn = QPushButton("🗑 Удалить")
-            delete_btn.clicked.connect(lambda checked, mid=material['id']: self.delete_material(mid))
-            self.admin_materials_table.setCellWidget(row, 2, delete_btn)
+        self.all_admin_materials = materials
+        self.display_admin_materials(materials)
 
     def load_study_materials(self):
-        """Загрузка учебных материалов для обычного пользователя с возможностью открытия"""
-        if hasattr(self, 'studyMaterialsLayout'):
-            for i in reversed(range(self.studyMaterialsLayout.count())):
-                widget = self.studyMaterialsLayout.itemAt(i).widget()
-                if widget:
-                    widget.deleteLater()
-
+        """Загрузка учебных материалов"""
         materials = self.db.get_all_learning_materials()
-
-        if not materials:
-            no_data = QLabel("📭 Нет учебных материалов")
-            no_data.setAlignment(Qt.AlignCenter)
-            no_data.setStyleSheet("color: #6c7086; padding: 40px; font-size: 16px;")
-            self.studyMaterialsLayout.addWidget(no_data)
-            return
-
-        for material in materials:
-            card = QFrame()
-            card.setCursor(Qt.PointingHandCursor)
-            card.setStyleSheet("""
-                QFrame {
-                    background-color: white;
-                    border-radius: 12px;
-                    margin: 8px;
-                    padding: 15px;
-                    border: 1px solid #dee2e6;
-                }
-                QFrame:hover {
-                    background-color: #f8f9fa;
-                    border-color: #3498db;
-                }
-            """)
-
-            # Делаем карточку кликабельной
-            card.mousePressEvent = lambda event, m=material: self.open_material(m)
-
-            card_layout = QVBoxLayout(card)
-
-            # Иконка и название
-            header_layout = QHBoxLayout()
-
-            file_type = material.get('file_type', 'text')
-            if file_type == 'pdf':
-                icon = "📑"
-                type_text = "PDF документ"
-            elif file_type == 'image':
-                icon = "🖼️"
-                type_text = "Изображение"
-            else:
-                icon = "📄"
-                type_text = "Текстовый документ"
-
-            title = QLabel(f"{icon} {material['filename']}")
-            title.setFont(QFont("", 14, QFont.Bold))
-            title.setStyleSheet("color: #2c3e50;")
-            header_layout.addWidget(title)
-
-            header_layout.addStretch()
-
-            type_badge = QLabel(type_text)
-            type_badge.setStyleSheet("""
-                QLabel {
-                    background-color: #e9ecef;
-                    color: #495057;
-                    padding: 4px 12px;
-                    border-radius: 12px;
-                    font-size: 11px;
-                }
-            """)
-            header_layout.addWidget(type_badge)
-
-            card_layout.addLayout(header_layout)
-
-            # Описание
-            if material.get('description'):
-                desc = QLabel(material['description'])
-                desc.setWordWrap(True)
-                desc.setStyleSheet("color: #6c757d; font-size: 12px;")
-                card_layout.addWidget(desc)
-
-            # Предпросмотр для изображений
-            if file_type == 'image' and material.get('content') and os.path.exists(material['content']):
-                preview_label = QLabel()
-                preview_label.setAlignment(Qt.AlignCenter)
-                pixmap = QPixmap(material['content'])
-                if not pixmap.isNull():
-                    pixmap = pixmap.scaled(300, 200, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-                    preview_label.setPixmap(pixmap)
-                    card_layout.addWidget(preview_label)
-
-            # Кнопка открытия
-            open_button = QPushButton(f"📖 Открыть {type_text}")
-            open_button.setStyleSheet("""
-                QPushButton {
-                    background-color: #3498db;
-                    color: white;
-                    border: none;
-                    border-radius: 8px;
-                    padding: 8px 16px;
-                    font-weight: bold;
-                    margin-top: 10px;
-                }
-                QPushButton:hover {
-                    background-color: #2980b9;
-                }
-            """)
-            open_button.clicked.connect(lambda checked, m=material: self.open_material(m))
-            card_layout.addWidget(open_button)
-
-            self.studyMaterialsLayout.addWidget(card)
+        self.all_study_materials = materials
+        self.display_study_materials(materials)
 
     def open_material(self, material):
         """Открытие материала во встроенном просмотрщике"""
@@ -699,7 +1055,7 @@ class MainWindow(QMainWindow):
             question = QLabel(f"❓ {mistake['text']}")
             question.setWordWrap(True)
             question.setFont(QFont("", 11, QFont.Bold))
-            question.setStyleSheet("color: #f38ba8;")
+            question.setStyleSheet("color: #000;")
             card_layout.addWidget(question)
 
             correct_options = []
@@ -710,13 +1066,13 @@ class MainWindow(QMainWindow):
             correct_text = f"✅ <b>Правильный ответ:</b> {', '.join(correct_options)}"
             correct_label = QLabel(correct_text)
             correct_label.setWordWrap(True)
-            correct_label.setStyleSheet("color: #a6e3a1;")
+            correct_label.setStyleSheet("color: #000;")
             card_layout.addWidget(correct_label)
 
             if mistake.get('explanation'):
                 explanation = QLabel(f"💡 <b>Пояснение:</b> {mistake['explanation']}")
                 explanation.setWordWrap(True)
-                explanation.setStyleSheet("color: #89b4fa;")
+                explanation.setStyleSheet("color: #000;")
                 card_layout.addWidget(explanation)
 
             self.mistakesLayout.addWidget(card)
@@ -776,78 +1132,275 @@ class MainWindow(QMainWindow):
         """Диалог добавления учебного материала с поддержкой PDF и изображений"""
         dialog = QDialog(self)
         dialog.setWindowTitle("Добавление учебного материала")
-        dialog.setMinimumSize(500, 500)
+        dialog.setMinimumSize(550, 600)
+        dialog.resize(600, 650)
+        dialog.setModal(True)
+        dialog.setStyleSheet("""
+            QDialog {
+                background-color: #f0f2f5;
+            }
+            QLabel {
+                color: #2c3e50;
+                font-weight: bold;
+                margin-top: 5px;
+                margin-bottom: 2px;
+            }
+            QLineEdit, QTextEdit, QComboBox {
+                background-color: white;
+                color: #2c3e50;
+                border: 1px solid #dee2e6;
+                border-radius: 8px;
+                padding: 8px 10px;
+                font-size: 13px;
+            }
+            QLineEdit:focus, QTextEdit:focus, QComboBox:focus {
+                border-color: #3498db;
+            }
+            QTextEdit {
+                min-height: 60px;
+                max-height: 80px;
+            }
+            QComboBox::drop-down {
+                border: none;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid #2c3e50;
+                margin-right: 5px;
+            }
+            QPushButton {
+                background-color: #3498db;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                padding: 10px 20px;
+                font-weight: bold;
+                font-size: 13px;
+            }
+            QPushButton:hover {
+                background-color: #2980b9;
+            }
+            QPushButton:pressed {
+                background-color: #1c6ea4;
+            }
+            QPushButton#fileBtn {
+                background-color: #6c757d;
+            }
+            QPushButton#fileBtn:hover {
+                background-color: #5a6268;
+            }
+            QPushButton#cancelBtn {
+                background-color: #6c757d;
+            }
+            QPushButton#cancelBtn:hover {
+                background-color: #5a6268;
+            }
+            QScrollArea {
+                border: none;
+                background-color: transparent;
+            }
+            QScrollBar:vertical {
+                background: #e9ecef;
+                width: 8px;
+                border-radius: 4px;
+            }
+            QScrollBar::handle:vertical {
+                background: #3498db;
+                border-radius: 4px;
+            }
+        """)
 
-        layout = QVBoxLayout(dialog)
+        # Основной layout
+        main_layout = QVBoxLayout(dialog)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Scroll area
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setStyleSheet("border: none; background-color: transparent;")
+
+        # Контейнер для содержимого
+        content_widget = QWidget()
+        content_widget.setStyleSheet("background-color: #f0f2f5;")
+        layout = QVBoxLayout(content_widget)
+        layout.setSpacing(12)
+        layout.setContentsMargins(20, 20, 20, 20)
 
         # Название
+        name_label = QLabel("📝 Название материала:")
+        layout.addWidget(name_label)
         filename_edit = QLineEdit()
-        filename_edit.setPlaceholderText("Название материала")
+        filename_edit.setStyleSheet('border: 1px solid;')
+        filename_edit.setPlaceholderText("Введите название материала...")
         layout.addWidget(filename_edit)
 
         # Описание
+        desc_label = QLabel("📄 Описание (необязательно):")
+        layout.addWidget(desc_label)
         desc_edit = QTextEdit()
-        desc_edit.setPlaceholderText("Описание (необязательно)")
-        desc_edit.setMaximumHeight(80)
+        desc_edit.setStyleSheet('border: 1px solid;')
+        desc_edit.setPlaceholderText("Введите описание материала...")
+        desc_edit.setMaximumHeight(70)
         layout.addWidget(desc_edit)
 
-        # Тип материала
-        type_label = QLabel("Тип материала:")
-        layout.addWidget(type_label)
+        # Разделитель
+        line = QFrame()
+        line.setFrameShape(QFrame.HLine)
+        line.setStyleSheet("background-color: #dee2e6; max-height: 1px; margin: 10px 0;")
+        layout.addWidget(line)
 
+        # Тип материала
+        type_label = QLabel("📌 Тип материала:")
+        layout.addWidget(type_label)
         type_combo = QComboBox()
         type_combo.addItems(["Текст", "Изображение", "PDF"])
+        type_combo.setStyleSheet("padding: 8px;")
         layout.addWidget(type_combo)
 
-        # Содержание (для текста)
+        # Контейнер для содержимого в зависимости от типа
+        content_container = QFrame()
+        content_container.setStyleSheet("""
+            QFrame {
+                background-color: white;
+                border: 1px solid #dee2e6;
+                border-radius: 10px;
+                margin-top: 5px;
+            }
+        """)
+        content_container_layout = QVBoxLayout(content_container)
+        content_container_layout.setSpacing(10)
+        content_container_layout.setContentsMargins(15, 15, 15, 15)
+
+        # Для текста
         content_edit = QTextEdit()
-        content_edit.setPlaceholderText("Содержание материала...")
-        content_edit.hide()
-        layout.addWidget(content_edit)
+        content_edit.setPlaceholderText("Введите содержание материала...")
+        content_edit.setStyleSheet('border: 1px solid;')
+        content_edit.setMinimumHeight(150)
+        content_container_layout.addWidget(content_edit)
 
-        # Кнопка выбора файла (для изображений и PDF)
+        # Для файла (изображение/PDF)
+        file_widget = QWidget()
+        file_layout = QVBoxLayout(file_widget)
+
         file_button = QPushButton("📁 Выбрать файл")
-        file_button.hide()
-        layout.addWidget(file_button)
+        file_button.setStyleSheet('color: #000;')
+        file_button.setObjectName("fileBtn")
+        file_button.setMinimumHeight(40)
+        file_layout.addWidget(file_button)
 
-        file_path_label = QLabel()
-        file_path_label.hide()
-        layout.addWidget(file_path_label)
+        file_name_label = QLabel("Файл не выбран")
+        file_name_label.setStyleSheet("color: #000; font-size: 12px; font-weight: normal; margin: 5px 0;")
+        file_name_label.setAlignment(Qt.AlignCenter)
+        file_layout.addWidget(file_name_label)
+
+        file_preview_label = QLabel()
+        file_preview_label.setAlignment(Qt.AlignCenter)
+        file_preview_label.setMinimumHeight(100)
+        file_preview_label.setStyleSheet("""
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border: 1px dashed #dee2e6;
+            padding: 10px;
+            color: #6c757d;
+        """)
+        file_preview_label.setText("🖼️ Предпросмотр")
+        file_layout.addWidget(file_preview_label)
+
+        file_widget.hide()
+        content_container_layout.addWidget(file_widget)
+
+        # Изначально показываем текстовое поле, скрываем файловое
+        content_edit.show()
+        file_widget.hide()
+
+        layout.addWidget(content_container)
 
         selected_file_path = None
+        selected_file_type = None
 
         def on_type_changed():
+            nonlocal selected_file_path, selected_file_type
             material_type = type_combo.currentText()
+
+            # Сбрасываем выбранный файл
+            selected_file_path = None
+            selected_file_type = None
+            file_name_label.setText("Файл не выбран")
+            file_name_label.setStyleSheet("color: #000; font-size: 12px; font-weight: normal;")
+            file_preview_label.clear()
+            file_preview_label.setText("🖼️ Предпросмотр")
+
             if material_type == "Текст":
                 content_edit.show()
-                file_button.hide()
-                file_path_label.hide()
+                file_widget.hide()
             else:
                 content_edit.hide()
-                file_button.show()
-                file_path_label.show()
+                file_widget.show()
+                selected_file_type = "image" if material_type == "Изображение" else "pdf"
 
         type_combo.currentTextChanged.connect(on_type_changed)
 
         def select_file():
             nonlocal selected_file_path
             material_type = type_combo.currentText()
+
             if material_type == "Изображение":
                 file_path, _ = QFileDialog.getOpenFileName(dialog, "Выберите изображение", "",
                                                            "Images (*.png *.jpg *.jpeg *.bmp *.gif)")
                 if file_path:
                     selected_file_path = file_path
-                    file_path_label.setText(f"Выбран файл: {os.path.basename(file_path)}")
+                    file_name_label.setText(f"✅ {os.path.basename(file_path)}")
+                    file_name_label.setStyleSheet("color: #27ae60; font-size: 12px; font-weight: normal;")
+
+                    # Показываем превью для изображений
+                    pixmap = QPixmap(file_path)
+                    if not pixmap.isNull():
+                        scaled_pixmap = pixmap.scaled(200, 120, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                        file_preview_label.setPixmap(scaled_pixmap)
+                        file_preview_label.setText("")
+                    else:
+                        file_preview_label.setText("❌ Не удалось загрузить")
+
             elif material_type == "PDF":
                 file_path, _ = QFileDialog.getOpenFileName(dialog, "Выберите PDF файл", "", "PDF Files (*.pdf)")
                 if file_path:
                     selected_file_path = file_path
-                    file_path_label.setText(f"Выбран файл: {os.path.basename(file_path)}")
+                    file_name_label.setText(f"✅ {os.path.basename(file_path)}")
+                    file_name_label.setStyleSheet("color: #27ae60; font-size: 12px; font-weight: normal;")
+                    file_preview_label.setText("📑 PDF документ\nГотов к загрузке")
+                    file_preview_label.setStyleSheet("""
+                        background-color: #e3f2fd;
+                        border-radius: 8px;
+                        padding: 20px;
+                        color: #3498db;
+                        font-size: 14px;
+                    """)
 
         file_button.clicked.connect(select_file)
 
-        save_button = QPushButton("💾 Сохранить")
-        layout.addWidget(save_button)
+        layout.addStretch()
+
+        # Кнопки
+        buttons_layout = QHBoxLayout()
+        buttons_layout.addStretch()
+
+        save_button = QPushButton("💾 Сохранить материал")
+        save_button.setStyleSheet('background-color: #3498db;')
+        save_button.setMinimumWidth(150)
+        buttons_layout.addWidget(save_button)
+
+        cancel_button = QPushButton("❌ Отмена")
+        cancel_button.setStyleSheet('background-color: #3498db;')
+        cancel_button.setObjectName("cancelBtn")
+        buttons_layout.addWidget(cancel_button)
+
+        buttons_layout.addStretch()
+        layout.addLayout(buttons_layout)
+
+        scroll_area.setWidget(content_widget)
+        main_layout.addWidget(scroll_area)
 
         def save_material():
             filename = filename_edit.text().strip()
@@ -857,6 +1410,10 @@ class MainWindow(QMainWindow):
 
             material_type = type_combo.currentText()
             user = self.auth_manager.get_current_user()
+
+            if not user:
+                QMessageBox.warning(dialog, "Ошибка", "Пользователь не авторизован")
+                return
 
             if material_type == "Текст":
                 content = content_edit.toPlainText().strip()
@@ -879,9 +1436,15 @@ class MainWindow(QMainWindow):
 
                 # Копируем файл в папку materials
                 ext = os.path.splitext(selected_file_path)[1]
-                new_filename = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{filename}{ext}"
+                safe_filename = filename.replace(" ", "_").replace("/", "_").replace("\\", "_")
+                new_filename = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{safe_filename}{ext}"
                 new_path = os.path.join("materials", new_filename)
-                shutil.copy2(selected_file_path, new_path)
+
+                try:
+                    shutil.copy2(selected_file_path, new_path)
+                except Exception as e:
+                    QMessageBox.warning(dialog, "Ошибка", f"Не удалось скопировать файл:\n{str(e)}")
+                    return
 
                 file_type = "image" if material_type == "Изображение" else "pdf"
                 self.db.add_learning_material(
@@ -896,40 +1459,147 @@ class MainWindow(QMainWindow):
             dialog.accept()
             self.load_study_materials()
             self.load_admin_materials()
-            QMessageBox.information(self, "Успех", "Материал добавлен")
+            QMessageBox.information(self, "Успех", "Материал успешно добавлен!")
 
         save_button.clicked.connect(save_material)
+        cancel_button.clicked.connect(dialog.reject)
         dialog.exec_()
 
     def add_question_dialog(self):
-        """Диалог добавления вопроса с поддержкой изображений"""
+        """Диалог добавления вопроса с поддержкой изображений и прокруткой"""
         dialog = QDialog(self)
         dialog.setWindowTitle("Добавление вопроса")
-        dialog.setMinimumSize(800, 800)
+        dialog.setMinimumSize(700, 600)
+        dialog.resize(750, 700)
+        dialog.setModal(True)
+        dialog.setStyleSheet("""
+            QDialog {
+                background-color: #f0f2f5;
+            }
+            QLabel {
+                color: #2c3e50;
+                font-weight: bold;
+                margin-top: 5px;
+                margin-bottom: 2px;
+            }
+            QTextEdit, QLineEdit {
+                background-color: white;
+                color: #2c3e50;
+                border: 1px solid #dee2e6;
+                border-radius: 8px;
+                padding: 8px;
+                font-size: 13px;
+            }
+            QTextEdit:focus, QLineEdit:focus {
+                border-color: #3498db;
+            }
+            QCheckBox {
+                color: #2c3e50;
+                spacing: 8px;
+                padding: 3px;
+            }
+            QCheckBox::indicator {
+                width: 16px;
+                height: 16px;
+                border-radius: 3px;
+                border: 2px solid #3498db;
+                background-color: white;
+            }
+            QCheckBox::indicator:checked {
+                background-color: #3498db;
+            }
+            QPushButton {
+                background-color: #3498db;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 8px 16px;
+                font-weight: bold;
+                font-size: 13px;
+            }
+            QPushButton:hover {
+                background-color: #2980b9;
+            }
+            QPushButton#clearBtn {
+                background-color: #6c757d;
+            }
+            QPushButton#clearBtn:hover {
+                background-color: #5a6268;
+            }
+            QScrollArea {
+                border: none;
+                background-color: transparent;
+            }
+            QScrollBar:vertical {
+                background: #e9ecef;
+                width: 8px;
+                border-radius: 4px;
+            }
+            QScrollBar::handle:vertical {
+                background: #3498db;
+                border-radius: 4px;
+            }
+        """)
 
-        layout = QVBoxLayout(dialog)
+        # Основной layout
+        main_layout = QVBoxLayout(dialog)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Scroll area для содержимого
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setStyleSheet("border: none; background-color: transparent;")
+
+        # Контейнер для содержимого
+        content_widget = QWidget()
+        content_widget.setStyleSheet("background-color: #f0f2f5;")
+        layout = QVBoxLayout(content_widget)
+        layout.setSpacing(10)
+        layout.setContentsMargins(20, 20, 20, 20)
 
         # Текст вопроса
+        question_label = QLabel("📝 Текст вопроса:")
+        layout.addWidget(question_label)
         question_text = QTextEdit()
-        question_text.setPlaceholderText("Текст вопроса...")
-        question_text.setMinimumHeight(100)
+        question_text.setPlaceholderText("Введите текст вопроса...")
+        question_text.setStyleSheet("border: 1px solid;")
+        question_text.setMinimumHeight(80)
+        question_text.setMaximumHeight(120)
         layout.addWidget(question_text)
 
         # Изображение
-        image_label = QLabel("Изображение для вопроса (необязательно):")
+        image_label = QLabel("🖼️ Изображение для вопроса (необязательно):")
         layout.addWidget(image_label)
 
         image_buttons_layout = QHBoxLayout()
         select_image_btn = QPushButton("📁 Выбрать изображение")
+        select_image_btn.setStyleSheet("color: #000;")
         clear_image_btn = QPushButton("🗑 Очистить")
+        clear_image_btn.setStyleSheet("color: #000;")
+        clear_image_btn.setObjectName("clearBtn")
         image_buttons_layout.addWidget(select_image_btn)
         image_buttons_layout.addWidget(clear_image_btn)
+        image_buttons_layout.addStretch()
         layout.addLayout(image_buttons_layout)
 
+        # Имя файла
+        self.selected_image_name_label = QLabel("Файл не выбран")
+        self.selected_image_name_label.setStyleSheet("color: #6c757d; font-size: 11px; font-weight: normal; margin: 0;")
+        layout.addWidget(self.selected_image_name_label)
+
+        # Превью изображения
         image_preview = QLabel()
         image_preview.setAlignment(Qt.AlignCenter)
-        image_preview.setMinimumHeight(150)
-        image_preview.setStyleSheet("background-color: #f5f5f5; border-radius: 8px;")
+        image_preview.setMinimumHeight(120)
+        image_preview.setMaximumHeight(150)
+        image_preview.setStyleSheet("""
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border: 1px dashed #dee2e6;
+            padding: 10px;
+            color: #6c757d;
+        """)
+        image_preview.setText("🖼️ Предпросмотр изображения")
         layout.addWidget(image_preview)
 
         self.current_question_image_path = None
@@ -938,66 +1608,115 @@ class MainWindow(QMainWindow):
             file_path, _ = QFileDialog.getOpenFileName(dialog, "Выберите изображение", QUESTIONS_IMAGES_DIR,
                                                        "Images (*.png *.jpg *.jpeg *.bmp *.gif)")
             if file_path:
-                # Копируем изображение в папку questions_images
                 ext = os.path.splitext(file_path)[1]
                 new_filename = f"q_{datetime.now().strftime('%Y%m%d_%H%M%S')}{ext}"
                 new_path = os.path.join(QUESTIONS_IMAGES_DIR, new_filename)
                 shutil.copy2(file_path, new_path)
                 self.current_question_image_path = new_path
 
+                self.selected_image_name_label.setText(f"📄 {os.path.basename(file_path)}")
+                self.selected_image_name_label.setStyleSheet("color: #27ae60; font-size: 11px; font-weight: normal;")
+
                 pixmap = QPixmap(new_path)
-                pixmap = pixmap.scaled(300, 150, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-                image_preview.setPixmap(pixmap)
+                if not pixmap.isNull():
+                    scaled_pixmap = pixmap.scaled(400, 130, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                    image_preview.setPixmap(scaled_pixmap)
+                    image_preview.setText("")
+                else:
+                    image_preview.setText("❌ Не удалось загрузить изображение")
 
         def clear_image():
             self.current_question_image_path = None
             image_preview.clear()
-            image_preview.setText("Изображение не выбрано")
+            image_preview.setText("🖼️ Предпросмотр изображения")
+            self.selected_image_name_label.setText("Файл не выбран")
+            self.selected_image_name_label.setStyleSheet("color: #6c757d; font-size: 11px; font-weight: normal;")
 
         select_image_btn.clicked.connect(select_image)
         clear_image_btn.clicked.connect(clear_image)
-        clear_image()  # Инициализация
+
+        # Разделитель
+        line = QFrame()
+        line.setFrameShape(QFrame.HLine)
+        line.setStyleSheet("background-color: #dee2e6; max-height: 1px; margin: 10px 0;")
+        layout.addWidget(line)
 
         # Варианты ответов
-        options_label = QLabel("Варианты ответов:")
-        options_label.setFont(QFont("", 12, QFont.Bold))
+        options_label = QLabel("📌 Варианты ответов:")
+        options_label.setFont(QFont("", 11, QFont.Bold))
         layout.addWidget(options_label)
 
         options = []
         for i in range(4):
             opt_edit = QLineEdit()
             opt_edit.setPlaceholderText(f"Вариант {i + 1}")
+            opt_edit.setStyleSheet("border: 1px solid;")
+            opt_edit.setMinimumHeight(35)
             layout.addWidget(opt_edit)
             options.append(opt_edit)
 
+        # Разделитель
+        line2 = QFrame()
+        line2.setFrameShape(QFrame.HLine)
+        line2.setStyleSheet("background-color: #dee2e6; max-height: 1px; margin: 10px 0;")
+        layout.addWidget(line2)
+
         # Правильные ответы
-        correct_label = QLabel("Правильные ответы (можно выбрать несколько):")
-        correct_label.setFont(QFont("", 12, QFont.Bold))
+        correct_label = QLabel("✅ Правильные ответы (можно выбрать несколько):")
+        correct_label.setFont(QFont("", 11, QFont.Bold))
         layout.addWidget(correct_label)
 
         correct_checkboxes = []
+        checkboxes_layout = QHBoxLayout()
         for i in range(4):
             cb = QCheckBox(f"Вариант {i + 1}")
-            layout.addWidget(cb)
+            checkboxes_layout.addWidget(cb)
             correct_checkboxes.append(cb)
+        checkboxes_layout.addStretch()
+        layout.addLayout(checkboxes_layout)
+
+        # Разделитель
+        line3 = QFrame()
+        line3.setFrameShape(QFrame.HLine)
+        line3.setStyleSheet("background-color: #dee2e6; max-height: 1px; margin: 10px 0;")
+        layout.addWidget(line3)
 
         # Пояснение
-        explanation_label = QLabel("Пояснение:")
-        explanation_label.setFont(QFont("", 12, QFont.Bold))
+        explanation_label = QLabel("💡 Пояснение к ответу:")
         layout.addWidget(explanation_label)
-
         explanation = QTextEdit()
-        explanation.setPlaceholderText("Пояснение к правильному ответу...")
-        explanation.setMinimumHeight(80)
+        explanation.setPlaceholderText("Введите пояснение к правильному ответу...")
+        explanation.setStyleSheet("border: 1px solid;")
+        explanation.setMinimumHeight(70)
+        explanation.setMaximumHeight(100)
         layout.addWidget(explanation)
 
         # Категория
+        category_label = QLabel("📂 Категория (необязательно):")
+        layout.addWidget(category_label)
         category_edit = QLineEdit()
-        category_edit.setPlaceholderText("Категория (необязательно)")
+        category_edit.setPlaceholderText("Например: Нормативная база, Организация службы...")
+        category_edit.setStyleSheet("border: 1px solid;")
         layout.addWidget(category_edit)
 
+        layout.addStretch()
+
+        # Кнопки внизу
+        buttons_layout = QHBoxLayout()
+        buttons_layout.addStretch()
         save_button = QPushButton("💾 Сохранить вопрос")
-        layout.addWidget(save_button)
+        save_button.setStyleSheet("background-color: #3498db")
+        save_button.setMinimumWidth(130)
+        cancel_btn = QPushButton("❌ Отмена")
+        cancel_btn.setStyleSheet("background-color: #3498db")
+        cancel_btn.setObjectName("clearBtn")
+        buttons_layout.addWidget(save_button)
+        buttons_layout.addWidget(cancel_btn)
+        buttons_layout.addStretch()
+        layout.addLayout(buttons_layout)
+
+        scroll_area.setWidget(content_widget)
+        main_layout.addWidget(scroll_area)
 
         def save_question():
             text = question_text.toPlainText().strip()
@@ -1025,9 +1744,10 @@ class MainWindow(QMainWindow):
             self.db.add_question(text, self.current_question_image_path, opts, mask, expl, category)
             dialog.accept()
             self.load_questions_list()
-            QMessageBox.information(self, "Успех", "Вопрос добавлен")
+            QMessageBox.information(self, "Успех", "Вопрос успешно добавлен!")
 
         save_button.clicked.connect(save_question)
+        cancel_btn.clicked.connect(dialog.reject)
         dialog.exec_()
 
     def edit_question(self, question_id):
@@ -1038,42 +1758,156 @@ class MainWindow(QMainWindow):
 
         dialog = QDialog(self)
         dialog.setWindowTitle("Редактирование вопроса")
-        dialog.setMinimumSize(800, 800)
+        dialog.setMinimumSize(700, 600)
+        dialog.resize(750, 700)
+        dialog.setModal(True)
+        dialog.setStyleSheet("""
+            QDialog {
+                background-color: #f0f2f5;
+            }
+            QLabel {
+                color: #2c3e50;
+                font-weight: bold;
+                margin-top: 5px;
+                margin-bottom: 2px;
+            }
+            QTextEdit, QLineEdit {
+                background-color: white;
+                color: #2c3e50;
+                border: 1px solid #dee2e6;
+                border-radius: 8px;
+                padding: 8px;
+                font-size: 13px;
+            }
+            QTextEdit:focus, QLineEdit:focus {
+                border-color: #3498db;
+            }
+            QCheckBox {
+                color: #2c3e50;
+                spacing: 8px;
+                padding: 3px;
+            }
+            QCheckBox::indicator {
+                width: 16px;
+                height: 16px;
+                border-radius: 3px;
+                border: 2px solid #3498db;
+                background-color: white;
+            }
+            QCheckBox::indicator:checked {
+                background-color: #3498db;
+            }
+            QPushButton {
+                background-color: #3498db;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 8px 16px;
+                font-weight: bold;
+                font-size: 13px;
+            }
+            QPushButton:hover {
+                background-color: #2980b9;
+            }
+            QPushButton#clearBtn {
+                background-color: #6c757d;
+            }
+            QPushButton#clearBtn:hover {
+                background-color: #5a6268;
+            }
+            QScrollArea {
+                border: none;
+                background-color: transparent;
+            }
+            QScrollBar:vertical {
+                background: #e9ecef;
+                width: 8px;
+                border-radius: 4px;
+            }
+            QScrollBar::handle:vertical {
+                background: #3498db;
+                border-radius: 4px;
+            }
+        """)
 
-        layout = QVBoxLayout(dialog)
+        # Основной layout
+        main_layout = QVBoxLayout(dialog)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Scroll area для содержимого
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setStyleSheet("border: none; background-color: transparent;")
+
+        # Контейнер для содержимого
+        content_widget = QWidget()
+        content_widget.setStyleSheet("background-color: #f0f2f5;")
+        layout = QVBoxLayout(content_widget)
+        layout.setSpacing(10)
+        layout.setContentsMargins(20, 20, 20, 20)
 
         # Текст вопроса
+        question_label = QLabel("📝 Текст вопроса:")
+        layout.addWidget(question_label)
         question_text = QTextEdit()
+        question_text.setStyleSheet("border: 1px solid;")
         question_text.setPlainText(q['text'])
-        question_text.setMinimumHeight(100)
+        question_text.setMinimumHeight(80)
+        question_text.setMaximumHeight(120)
         layout.addWidget(question_text)
 
         # Изображение
-        image_label = QLabel("Изображение для вопроса:")
+        image_label = QLabel("🖼️ Изображение для вопроса:")
         layout.addWidget(image_label)
+
 
         image_buttons_layout = QHBoxLayout()
         select_image_btn = QPushButton("📁 Выбрать изображение")
+        select_image_btn.setStyleSheet("color: #000;")
         clear_image_btn = QPushButton("🗑 Очистить")
+        clear_image_btn.setStyleSheet("color: #000;")
+        clear_image_btn.setObjectName("clearBtn")
         image_buttons_layout.addWidget(select_image_btn)
         image_buttons_layout.addWidget(clear_image_btn)
+        image_buttons_layout.addStretch()
         layout.addLayout(image_buttons_layout)
 
+        # Имя файла
+        image_name_label = QLabel()
+        image_name_label.setStyleSheet("color: #6c757d; font-size: 11px; font-weight: normal;")
+        layout.addWidget(image_name_label)
+
+        # Превью
         image_preview = QLabel()
         image_preview.setAlignment(Qt.AlignCenter)
-        image_preview.setMinimumHeight(150)
-        image_preview.setStyleSheet("background-color: #45475a; border-radius: 8px;")
-        layout.addWidget(image_preview)
+        image_preview.setMinimumHeight(120)
+        image_preview.setMaximumHeight(150)
+        image_preview.setStyleSheet("""
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border: 1px dashed #dee2e6;
+            padding: 10px;
+        """)
 
         current_image = q.get('image_path')
         if current_image and os.path.exists(current_image):
             pixmap = QPixmap(current_image)
-            pixmap = pixmap.scaled(300, 150, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-            image_preview.setPixmap(pixmap)
+            if not pixmap.isNull():
+                scaled_pixmap = pixmap.scaled(400, 130, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                image_preview.setPixmap(scaled_pixmap)
+                image_name_label.setText(f"📄 {os.path.basename(current_image)}")
+                image_name_label.setStyleSheet("color: #27ae60; font-size: 11px;")
+            else:
+                image_preview.setText("🖼️ Предпросмотр изображения")
+                image_name_label.setText("Файл не выбран")
         else:
-            image_preview.setText("Изображение не выбрано")
+            image_preview.setText("🖼️ Предпросмотр изображения")
+            image_name_label.setText("Файл не выбран")
+
+        layout.addWidget(image_preview)
 
         def select_image():
+            nonlocal current_image
             file_path, _ = QFileDialog.getOpenFileName(dialog, "Выберите изображение", QUESTIONS_IMAGES_DIR,
                                                        "Images (*.png *.jpg *.jpeg *.bmp *.gif)")
             if file_path:
@@ -1084,21 +1918,35 @@ class MainWindow(QMainWindow):
                 current_image = new_path
 
                 pixmap = QPixmap(new_path)
-                pixmap = pixmap.scaled(300, 150, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-                image_preview.setPixmap(pixmap)
+                if not pixmap.isNull():
+                    scaled_pixmap = pixmap.scaled(400, 130, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                    image_preview.setPixmap(scaled_pixmap)
+                    image_preview.setText("")
+                    image_name_label.setText(f"📄 {os.path.basename(file_path)}")
+                    image_name_label.setStyleSheet("color: #27ae60; font-size: 11px;")
+                else:
+                    image_preview.setText("❌ Не удалось загрузить изображение")
 
         def clear_image():
             nonlocal current_image
             current_image = None
             image_preview.clear()
-            image_preview.setText("Изображение не выбрано")
+            image_preview.setText("🖼️ Предпросмотр изображения")
+            image_name_label.setText("Файл не выбран")
+            image_name_label.setStyleSheet("color: #6c757d; font-size: 11px;")
 
         select_image_btn.clicked.connect(select_image)
         clear_image_btn.clicked.connect(clear_image)
 
+        # Разделитель
+        line = QFrame()
+        line.setFrameShape(QFrame.HLine)
+        line.setStyleSheet("background-color: #dee2e6; max-height: 1px; margin: 10px 0;")
+        layout.addWidget(line)
+
         # Варианты ответов
-        options_label = QLabel("Варианты ответов:")
-        options_label.setFont(QFont("", 12, QFont.Bold))
+        options_label = QLabel("📌 Варианты ответов:")
+        options_label.setFont(QFont("", 11, QFont.Bold))
         layout.addWidget(options_label)
 
         options = []
@@ -1106,39 +1954,76 @@ class MainWindow(QMainWindow):
             opt_edit = QLineEdit()
             opt_edit.setText(q[f'option{i + 1}'])
             opt_edit.setPlaceholderText(f"Вариант {i + 1}")
+            opt_edit.setStyleSheet("border: 1px solid;")
+            opt_edit.setMinimumHeight(35)
             layout.addWidget(opt_edit)
             options.append(opt_edit)
 
+        # Разделитель
+        line2 = QFrame()
+        line2.setFrameShape(QFrame.HLine)
+        line2.setStyleSheet("background-color: #dee2e6; max-height: 1px; margin: 10px 0;")
+        layout.addWidget(line2)
+
         # Правильные ответы
-        correct_label = QLabel("Правильные ответы (можно выбрать несколько):")
-        correct_label.setFont(QFont("", 12, QFont.Bold))
+        correct_label = QLabel("✅ Правильные ответы (можно выбрать несколько):")
+        correct_label.setFont(QFont("", 11, QFont.Bold))
         layout.addWidget(correct_label)
 
         correct_checkboxes = []
+        checkboxes_layout = QHBoxLayout()
         for i in range(4):
             cb = QCheckBox(f"Вариант {i + 1}")
             cb.setChecked((q['correct_mask'] >> i) & 1)
-            layout.addWidget(cb)
+            checkboxes_layout.addWidget(cb)
             correct_checkboxes.append(cb)
+        checkboxes_layout.addStretch()
+        layout.addLayout(checkboxes_layout)
+
+        # Разделитель
+        line3 = QFrame()
+        line3.setFrameShape(QFrame.HLine)
+        line3.setStyleSheet("background-color: #dee2e6; max-height: 1px; margin: 10px 0;")
+        layout.addWidget(line3)
 
         # Пояснение
-        explanation_label = QLabel("Пояснение:")
-        explanation_label.setFont(QFont("", 12, QFont.Bold))
-        layout.addWidget(explanation_label)
+        explanation_label = QLabel("💡 Пояснение к ответу:")
 
+        layout.addWidget(explanation_label)
         explanation = QTextEdit()
+        explanation.setStyleSheet("border: 1px solid;")
         explanation.setPlainText(q.get('explanation', ''))
-        explanation.setMinimumHeight(80)
+        explanation.setMinimumHeight(70)
+        explanation.setMaximumHeight(100)
         layout.addWidget(explanation)
 
         # Категория
+        category_label = QLabel("📂 Категория (необязательно):")
+        layout.addWidget(category_label)
         category_edit = QLineEdit()
+        category_edit.setStyleSheet("border: 1px solid;")
         category_edit.setText(q.get('category', ''))
-        category_edit.setPlaceholderText("Категория (необязательно)")
+        category_edit.setPlaceholderText("Например: Нормативная база, Организация службы...")
         layout.addWidget(category_edit)
 
+        layout.addStretch()
+
+        # Кнопки внизу
+        buttons_layout = QHBoxLayout()
+        buttons_layout.addStretch()
         save_button = QPushButton("💾 Сохранить изменения")
-        layout.addWidget(save_button)
+        save_button.setStyleSheet("background-color: #3498db;")
+        save_button.setMinimumWidth(130)
+        cancel_btn = QPushButton("❌ Отмена")
+        cancel_btn.setStyleSheet("background-color: #3498db;")
+        cancel_btn.setObjectName("clearBtn")
+        buttons_layout.addWidget(save_button)
+        buttons_layout.addWidget(cancel_btn)
+        buttons_layout.addStretch()
+        layout.addLayout(buttons_layout)
+
+        scroll_area.setWidget(content_widget)
+        main_layout.addWidget(scroll_area)
 
         def save_question():
             text = question_text.toPlainText().strip()
@@ -1166,9 +2051,10 @@ class MainWindow(QMainWindow):
             self.db.update_question(question_id, text, current_image, opts, mask, expl, category)
             dialog.accept()
             self.load_questions_list()
-            QMessageBox.information(self, "Успех", "Вопрос обновлен")
+            QMessageBox.information(self, "Успех", "Вопрос успешно обновлен!")
 
         save_button.clicked.connect(save_question)
+        cancel_btn.clicked.connect(dialog.reject)
         dialog.exec_()
 
     def delete_material(self, material_id):
@@ -1197,83 +2083,133 @@ class MainWindow(QMainWindow):
         """Диалог добавления/редактирования пользователя"""
         dialog = QDialog(self)
         dialog.setWindowTitle("Добавление пользователя")
-        dialog.setMinimumSize(400, 400)
+        dialog.setMinimumSize(450, 500)
+        dialog.setModal(True)
         dialog.setStyleSheet("""
             QDialog {
-                background-color: #1e1e2e;
+                background-color: #f0f2f5;
             }
             QLabel {
-                color: #cdd6f4;
+                color: #2c3e50;
+                font-weight: bold;
+                font-size: 13px;
+                margin-top: 5px;
             }
             QLineEdit, QComboBox {
-                background-color: #45475a;
-                color: #cdd6f4;
-                border: 1px solid #6c7086;
-                border-radius: 6px;
-                padding: 18px;
-                font-size: 12px;
+                background-color: white;
+                color: #2c3e50;
+                border: 1px solid #dee2e6;
+                border-radius: 8px;
+                padding: 10px 12px;
+                font-size: 13px;
+                font-family: Segoe UI;
+            }
+            QLineEdit:focus, QComboBox:focus {
+                border-color: #3498db;
+                outline: none;
             }
             QPushButton {
-                background-color: #89b4fa;
-                color: #1e1e2e;
+                background-color: #3498db;
+                color: white;
                 border: none;
                 border-radius: 8px;
-                padding: 15px;
+                padding: 10px 20px;
                 font-weight: bold;
+                font-size: 13px;
+                min-width: 100px;
             }
             QPushButton:hover {
-                background-color: #b4befe;
+                background-color: #2980b9;
+            }
+            QPushButton:pressed {
+                background-color: #1c6ea4;
+            }
+            QPushButton#cancelButton {
+                background-color: #6c757d;
+            }
+            QPushButton#cancelButton:hover {
+                background-color: #5a6268;
             }
         """)
 
         layout = QVBoxLayout(dialog)
-        layout.setSpacing(15)
+        layout.setSpacing(12)
+        layout.setContentsMargins(25, 25, 25, 25)
 
         # ФИО
-        full_name_label = QLabel("ФИО пользователя:")
+        full_name_label = QLabel("👤 ФИО пользователя:")
         layout.addWidget(full_name_label)
         full_name_edit = QLineEdit()
         full_name_edit.setPlaceholderText("Иванов Иван Иванович")
         layout.addWidget(full_name_edit)
 
         # Логин
-        username_label = QLabel("Логин:")
+        username_label = QLabel("🔑 Логин:")
         layout.addWidget(username_label)
         username_edit = QLineEdit()
         username_edit.setPlaceholderText("username")
         layout.addWidget(username_edit)
 
         # Пароль
-        password_label = QLabel("Пароль:")
+        password_label = QLabel("🔒 Пароль:")
         layout.addWidget(password_label)
         password_edit = QLineEdit()
-        password_edit.setPlaceholderText("пароль")
+        password_edit.setPlaceholderText("••••••••")
         password_edit.setEchoMode(QLineEdit.Password)
         layout.addWidget(password_edit)
 
         # Подтверждение пароля
-        confirm_label = QLabel("Подтверждение пароля:")
+        confirm_label = QLabel("🔒 Подтверждение пароля:")
         layout.addWidget(confirm_label)
         confirm_edit = QLineEdit()
-        confirm_edit.setPlaceholderText("повторите пароль")
+        confirm_edit.setPlaceholderText("••••••••")
         confirm_edit.setEchoMode(QLineEdit.Password)
         layout.addWidget(confirm_edit)
 
         # Роль
-        role_label = QLabel("Роль:")
+        role_label = QLabel("👔 Роль:")
         layout.addWidget(role_label)
         role_combo = QComboBox()
         role_combo.addItems(["user", "admin"])
+        role_combo.setStyleSheet("""
+            QComboBox {
+                background-color: white;
+                color: #2c3e50;
+                border: 1px solid #dee2e6;
+                border-radius: 8px;
+                padding: 10px 12px;
+            }
+            QComboBox::drop-down {
+                border: none;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid #2c3e50;
+                margin-right: 5px;
+            }
+        """)
         layout.addWidget(role_combo)
 
         layout.addStretch()
 
         # Кнопки
         buttons_layout = QHBoxLayout()
+        buttons_layout.setSpacing(15)
+        buttons_layout.addStretch()
+
         save_btn = QPushButton("💾 Сохранить")
-        cancel_btn = QPushButton("❌ Отмена")
+        save_btn.setCursor(Qt.PointingHandCursor)
         buttons_layout.addWidget(save_btn)
+
+        cancel_btn = QPushButton("❌ Отмена")
+        cancel_btn.setObjectName("cancelButton")
+        cancel_btn.setStyleSheet('background-color: #3498db')
+        cancel_btn.setCursor(Qt.PointingHandCursor)
         buttons_layout.addWidget(cancel_btn)
+
+        buttons_layout.addStretch()
         layout.addLayout(buttons_layout)
 
         def save_user():
@@ -1291,8 +2227,12 @@ class MainWindow(QMainWindow):
                 QMessageBox.warning(dialog, "Ошибка", "Пароли не совпадают")
                 return
 
+            if len(password) < 3:
+                QMessageBox.warning(dialog, "Ошибка", "Пароль должен содержать не менее 3 символов")
+                return
+
             if self.db.add_user(username, password, role, full_name):
-                QMessageBox.information(dialog, "Успех", "Пользователь добавлен")
+                QMessageBox.information(dialog, "Успех", "Пользователь успешно добавлен!")
                 dialog.accept()
                 self.load_users_list()
             else:
@@ -1309,51 +2249,79 @@ class MainWindow(QMainWindow):
             return
 
         dialog = QDialog(self)
-        dialog.setWindowTitle(f"Редактирование пользователя: {user['username']}")
-        dialog.setMinimumSize(400, 450)
+        dialog.setWindowTitle(f"Редактирование: {user['full_name']}")
+        dialog.setMinimumSize(450, 620)
+        dialog.setModal(True)
         dialog.setStyleSheet("""
             QDialog {
-                background-color: #1e1e2e;
+                background-color: #f0f2f5;
             }
             QLabel {
-                color: #cdd6f4;
+                color: #2c3e50;
+                font-weight: bold;
+                font-size: 13px;
+                margin-top: 5px;
             }
             QLineEdit, QComboBox {
-                background-color: #45475a;
-                color: #cdd6f4;
-                border: 1px solid #6c7086;
-                border-radius: 6px;
-                padding: 20px;
-                font-size: 12px;
+                background-color: white;
+                color: #2c3e50;
+                border: 1px solid #dee2e6;
+                border-radius: 8px;
+                padding: 10px 12px;
+                font-size: 13px;
+            }
+            QLineEdit:focus, QComboBox:focus {
+                border-color: #3498db;
             }
             QCheckBox {
-                color: #cdd6f4;
+                color: #2c3e50;
+                font-size: 13px;
+                spacing: 8px;
+            }
+            QCheckBox::indicator {
+                width: 18px;
+                height: 18px;
+                border-radius: 4px;
+                border: 2px solid #3498db;
+                background-color: white;
+            }
+            QCheckBox::indicator:checked {
+                background-color: #3498db;
             }
             QPushButton {
-                background-color: #89b4fa;
-                color: #1e1e2e;
+                background-color: #3498db;
+                color: white;
                 border: none;
                 border-radius: 8px;
-                padding: 20px;
+                padding: 10px 20px;
                 font-weight: bold;
+                font-size: 13px;
+                min-width: 100px;
             }
             QPushButton:hover {
-                background-color: #b4befe;
+                background-color: #2980b9;
+            }
+            QPushButton#cancelButton {
+                background-color: #6c757d;
+            }
+            QPushButton#cancelButton:hover {
+                background-color: #5a6268;
             }
         """)
 
         layout = QVBoxLayout(dialog)
-        layout.setSpacing(15)
+        layout.setSpacing(12)
+        layout.setContentsMargins(25, 25, 25, 25)
 
         # ФИО
-        full_name_label = QLabel("ФИО пользователя:")
+        full_name_label = QLabel("👤 ФИО пользователя:")
         layout.addWidget(full_name_label)
         full_name_edit = QLineEdit()
         full_name_edit.setText(user['full_name'])
         layout.addWidget(full_name_edit)
 
         # Логин
-        username_label = QLabel("Логин:")
+        username_label = QLabel("🔑 Логин:")
         layout.addWidget(username_label)
         username_edit = QLineEdit()
         username_edit.setText(user['username'])
@@ -1361,10 +2329,11 @@ class MainWindow(QMainWindow):
 
         # Чекбокс смены пароля
         change_password_cb = QCheckBox("Изменить пароль")
+        change_password_cb.setStyleSheet("margin-top: 10px;")
         layout.addWidget(change_password_cb)
 
         # Пароль (скрыт по умолчанию)
-        password_label = QLabel("Новый пароль:")
+        password_label = QLabel("🔒 Новый пароль:")
         password_label.hide()
         layout.addWidget(password_label)
         password_edit = QLineEdit()
@@ -1374,7 +2343,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(password_edit)
 
         # Подтверждение пароля
-        confirm_label = QLabel("Подтверждение пароля:")
+        confirm_label = QLabel("🔒 Подтверждение пароля:")
         confirm_label.hide()
         layout.addWidget(confirm_label)
         confirm_edit = QLineEdit()
@@ -1384,11 +2353,20 @@ class MainWindow(QMainWindow):
         layout.addWidget(confirm_edit)
 
         # Роль
-        role_label = QLabel("Роль:")
+        role_label = QLabel("👔 Роль:")
         layout.addWidget(role_label)
         role_combo = QComboBox()
         role_combo.addItems(["user", "admin"])
         role_combo.setCurrentText(user['role'])
+        role_combo.setStyleSheet("""
+            QComboBox {
+                background-color: white;
+                color: #2c3e50;
+                border: 1px solid #dee2e6;
+                border-radius: 8px;
+                padding: 10px 12px;
+            }
+        """)
         layout.addWidget(role_combo)
 
         def toggle_password_fields(state):
@@ -1404,10 +2382,20 @@ class MainWindow(QMainWindow):
 
         # Кнопки
         buttons_layout = QHBoxLayout()
-        save_btn = QPushButton("💾 Сохранить изменения")
-        cancel_btn = QPushButton("❌ Отмена")
+        buttons_layout.setSpacing(15)
+        buttons_layout.addStretch()
+
+        save_btn = QPushButton("💾 Сохранить")
+        save_btn.setCursor(Qt.PointingHandCursor)
         buttons_layout.addWidget(save_btn)
+
+        cancel_btn = QPushButton("❌ Отмена")
+        cancel_btn.setObjectName("cancelButton")
+        cancel_btn.setCursor(Qt.PointingHandCursor)
+        cancel_btn.setStyleSheet('background-color: #3498db')
         buttons_layout.addWidget(cancel_btn)
+
+        buttons_layout.addStretch()
         layout.addLayout(buttons_layout)
 
         def save_user():
@@ -1439,8 +2427,12 @@ class MainWindow(QMainWindow):
                     QMessageBox.warning(dialog, "Ошибка", "Пароли не совпадают")
                     return
 
+                if len(password) < 3:
+                    QMessageBox.warning(dialog, "Ошибка", "Пароль должен содержать не менее 3 символов")
+                    return
+
                 if self.db.update_user(user_id, username, full_name, role, password):
-                    QMessageBox.information(dialog, "Успех", "Пользователь обновлен")
+                    QMessageBox.information(dialog, "Успех", "Пользователь успешно обновлен")
                     dialog.accept()
                     self.load_users_list()
                 else:
@@ -1448,7 +2440,7 @@ class MainWindow(QMainWindow):
             else:
                 # Обновляем без смены пароля
                 if self.db.update_user(user_id, username, full_name, role):
-                    QMessageBox.information(dialog, "Успех", "Пользователь обновлен")
+                    QMessageBox.information(dialog, "Успех", "Пользователь успешно обновлен")
                     dialog.accept()
                     self.load_users_list()
                 else:
@@ -1476,31 +2468,6 @@ class MainWindow(QMainWindow):
         self.load_stats()
         self.load_mistakes()
 
-    def change_user(self):
-        """Смена пользователя с полной очисткой"""
-        reply = QMessageBox.question(self, "Смена пользователя",
-                                     "Вы действительно хотите сменить пользователя?\nТекущая сессия будет завершена.",
-                                     QMessageBox.Yes | QMessageBox.No)
-        if reply == QMessageBox.Yes:
-            # Очищаем состояние
-            self.auth_manager.logout()
-            self.clear_ui_state()
-
-            # Очищаем данные пользователя из интерфейса
-            if hasattr(self, 'userLabel'):
-                self.userLabel.setText("Пользователь")
-
-            # Скрываем главное окно
-            self.hide()
-
-            # Создаем и показываем диалог входа
-            login_dialog = LoginDialog(self.auth_manager, self)
-            login_dialog.login_successful.connect(self.on_login_success)
-
-            # Если диалог был закрыт без входа (крестик), выходим из приложения
-            if login_dialog.exec_() != QDialog.Accepted:
-                QApplication.quit()
-                sys.exit(0)
 
     def logout(self):
         """Выход из системы с полной очисткой"""
@@ -1843,7 +2810,7 @@ class MainWindow(QMainWindow):
         close_btn = QPushButton("✖ Закрыть")
         close_btn.setStyleSheet("""
             QPushButton {
-                background-color: #6c757d;
+                background-color: #3498db;
                 color: white;
                 border: none;
                 border-radius: 8px;
@@ -1853,7 +2820,7 @@ class MainWindow(QMainWindow):
                 min-width: 120px;
             }
             QPushButton:hover {
-                background-color: #5a6268;
+                background-color: #3498db;
             }
         """)
         close_btn.clicked.connect(dialog.accept)
@@ -1882,7 +2849,7 @@ class MainWindow(QMainWindow):
         # Удаляем админские вкладки если они есть
         for i in range(self.tabWidget.count() - 1, -1, -1):
             tab_text = self.tabWidget.tabText(i)
-            if tab_text in ["👥 Пользователи", "❓ Вопросы", "📁 Материалы", "📈 Статистика"]:
+            if tab_text in ["👥 Пользователи", "❓ Вопросы", "📁 Материалы", "📈 Общая статистика"]:
                 self.tabWidget.removeTab(i)
 
         # ВОССТАНАВЛИВАЕМ ВКЛАДКИ ТЕСТИРОВАНИЯ
@@ -1985,24 +2952,42 @@ class MainWindow(QMainWindow):
         test_frame_layout.setAlignment(Qt.AlignCenter)
 
         # Заголовок
-        test_title_label = QLabel("🎯 Тестирование знаний")
-        test_title_label.setFont(QFont("", 24, QFont.Bold))
+        test_title_label = QLabel("ТЕСТИРОВАНИЕ ЗНАНИЙ")
+        test_title_label.setFont(QFont("", 48, QFont.Bold))
         test_title_label.setAlignment(Qt.AlignCenter)
-        test_title_label.setStyleSheet("color: #2c3e50;")
+        test_title_label.setStyleSheet("color: #2c3e50; padding-top: 200px")
         test_frame_layout.addWidget(test_title_label)
 
         test_frame_layout.addSpacing(20)
 
         # Описание
+        # Добавляем растяжение сверху
+        test_frame_layout.addStretch()
+
+        # Контейнер с текстом
+        desc_container = QWidget()
+        desc_layout = QVBoxLayout(desc_container)
+        desc_layout.setAlignment(Qt.AlignCenter)
+
         test_desc_label = QLabel(
             "Вам будет предложено 15 случайных вопросов. Для успешного прохождения необходимо набрать 80% правильных ответов.")
-        test_desc_label.setFont(QFont("", 14))
+        test_desc_label.setFont(QFont("Segoe UI", 32))
         test_desc_label.setAlignment(Qt.AlignCenter)
         test_desc_label.setWordWrap(True)
-        test_desc_label.setStyleSheet("color: #6c757d;")
-        test_frame_layout.addWidget(test_desc_label)
+        test_desc_label.setStyleSheet("""
+            color: #6c757d;
+            background-color: transparent;
+            padding: 5px 20px 15px 20px;
+        """)
+        desc_layout.addWidget(test_desc_label)
 
-        test_frame_layout.addSpacing(30)
+        test_frame_layout.addWidget(desc_container)
+
+        # Добавляем растяжение снизу
+        test_frame_layout.addStretch()
+
+        # Или фиксированный отступ снизу
+        test_frame_layout.addSpacing(50)
 
         # Кнопка начала теста
         start_test_button = QPushButton("▶ Начать тестирование")
@@ -2050,25 +3035,42 @@ class MainWindow(QMainWindow):
         practice_frame_layout = QVBoxLayout(practice_frame)
         practice_frame_layout.setAlignment(Qt.AlignCenter)
 
-        # Заголовок
-        practice_title_label = QLabel("📖 Учебный тест с подсказками")
-        practice_title_label.setFont(QFont("", 24, QFont.Bold))
+        practice_title_label = QLabel("УЧЕБНЫЙ ТЕСТ")
+        practice_title_label.setFont(QFont("", 48, QFont.Bold))
         practice_title_label.setAlignment(Qt.AlignCenter)
-        practice_title_label.setStyleSheet("color: #2c3e50;")
+        practice_title_label.setStyleSheet("color: #2c3e50; padding-top: 200px")
         practice_frame_layout.addWidget(practice_title_label)
 
         practice_frame_layout.addSpacing(20)
 
         # Описание
+        # Добавляем растяжение сверху
+        practice_frame_layout.addStretch()
+
+        # Контейнер с текстом
+        desc_container = QWidget()
+        desc_layout = QVBoxLayout(desc_container)
+        desc_layout.setAlignment(Qt.AlignCenter)
+
         practice_desc_label = QLabel(
             "Идеально для подготовки! После каждого ответа вы увидите правильный вариант и пояснение.")
-        practice_desc_label.setFont(QFont("", 14))
+        practice_desc_label.setFont(QFont("Segoe UI", 32))
         practice_desc_label.setAlignment(Qt.AlignCenter)
         practice_desc_label.setWordWrap(True)
-        practice_desc_label.setStyleSheet("color: #6c757d;")
+        practice_desc_label.setStyleSheet("""
+                   color: #6c757d;
+                   background-color: transparent;
+                   padding: 5px 20px 15px 20px;
+               """)
         practice_frame_layout.addWidget(practice_desc_label)
 
-        practice_frame_layout.addSpacing(30)
+        practice_frame_layout.addWidget(desc_container)
+
+        # Добавляем растяжение снизу
+        practice_frame_layout.addStretch()
+
+        # Или фиксированный отступ снизу
+        practice_frame_layout.addSpacing(50)
 
         # Кнопка начала учебного теста
         start_practice_button = QPushButton("▶ Начать учебный тест")
@@ -2138,7 +3140,7 @@ class MainWindow(QMainWindow):
             return
 
         # Проверяем, не добавлены ли уже вкладки
-        admin_tab_names = ["👥 Пользователи", "❓ Вопросы", "📁 Материалы", "📈 Статистика"]
+        admin_tab_names = ["👥 Пользователи", "❓ Вопросы", "📁 Материалы", "📈 Общая статистика"]
         existing_tabs = []
         for i in range(self.tabWidget.count()):
             existing_tabs.append(self.tabWidget.tabText(i))
@@ -2159,9 +3161,9 @@ class MainWindow(QMainWindow):
             self.tabWidget.addTab(self.admin_materials_tab, "📁 Материалы")
             self.setup_admin_materials_tab()
 
-        if "📈 Статистика" not in existing_tabs:
+        if "📈 Общая статистика" not in existing_tabs:
             self.admin_stats_tab = QWidget()
-            self.tabWidget.addTab(self.admin_stats_tab, "📈 Статистика")
+            self.tabWidget.addTab(self.admin_stats_tab, "📈 Общая статистика")
             self.setup_admin_stats_tab()
 
     def on_tab_changed(self, index):
@@ -2291,7 +3293,7 @@ class MainWindow(QMainWindow):
 
                 info_layout = QHBoxLayout()
                 info_text_label = QLabel(f"<b>Попытка #{i}</b>  {date_str}")
-                info_text_label.setStyleSheet("color: #5996f7;")
+                info_text_label.setStyleSheet("color: #000;")
                 info_layout.addWidget(info_text_label)
                 info_layout.addStretch()
 
@@ -2306,7 +3308,13 @@ class MainWindow(QMainWindow):
                 main_layout.addLayout(info_layout)
 
                 details_btn = QPushButton("📖 Подробнее")
-                details_btn.setStyleSheet("color: #242424;")
+                details_btn.setStyleSheet("""
+                    color: #242424;
+                    background-color: white;
+                    border: 1px solid #ced4da;
+                    border-radius: 8px;
+                    padding: 6px 12px;
+                """)
                 details_btn.clicked.connect(lambda checked, rid=result['id']: self.view_test_details(rid))
                 main_layout.addWidget(details_btn)
 
@@ -2373,7 +3381,7 @@ class MainWindow(QMainWindow):
         general_layout.addWidget(self.admin_stats_label)
 
         # График успеваемости пользователей
-        chart_label = QLabel("📊 Средняя успеваемость пользователей:")
+        chart_label = QLabel("📊 Текущая успеваемость пользователей:")
         chart_label.setFont(QFont("Segoe UI", 12, QFont.Bold))
         chart_label.setStyleSheet("color: #2c3e50;")
         general_layout.addWidget(chart_label)
@@ -2399,7 +3407,7 @@ class MainWindow(QMainWindow):
                 background-color: white;
                 border: 1px solid #dee2e6;
                 border-radius: 6px;
-                padding: 8px;
+                padding: 2px;
                 color: #2c3e50;
             }
             QLineEdit:focus {
@@ -2445,6 +3453,7 @@ class MainWindow(QMainWindow):
         """Загрузка расширенной статистики для админа"""
         stats = self.db.get_overall_stats()
         all_users_stats = self.db.get_all_users_stats()
+
         # Общая статистика
         total_tests = sum(u['total_tests'] for u in all_users_stats)
         total_correct = sum(u['total_correct'] for u in all_users_stats)
@@ -2479,23 +3488,32 @@ class MainWindow(QMainWindow):
         """
         self.admin_stats_label.setText(info_text)
 
-        # График успеваемости пользователей
+        # Столбчатая диаграмма - показываем последний результат каждого пользователя
         if all_users_stats:
+            # Сортируем пользователей по убыванию последнего результата
+            sorted_users = sorted(all_users_stats, key=lambda x: x['last_test_percent'], reverse=True)
+
             user_names = []
-            avg_scores = []
+            last_scores = []
 
-            for u in all_users_stats:
-                name = u['full_name'][:15] if u['full_name'] else u['username'][:15]
+            for u in sorted_users:
+                # Обрезаем длинные имена
+                name = u['full_name'][:12] if u['full_name'] else u['username'][:12]
+                if len(name) < len(u.get('full_name', u['username'])):
+                    name += "."
                 user_names.append(name)
-                avg_scores.append(u['avg_percent'])
+                last_scores.append(u['last_test_percent'])
 
+            # Создаем столбчатую диаграмму с последними результатами
             self.admin_chart_widget.create_bar_chart(
-                avg_scores, user_names,
-                'Средняя успеваемость пользователей',
-                'Средний балл, %', threshold=80
+                last_scores,
+                user_names,
+                'Результаты последнего тестирования пользователей',
+                'Результат последнего теста, %',
+                threshold=80
             )
         else:
-            self.admin_chart_widget.create_bar_chart([0], ['Нет данных'], 'Нет данных', 'Средний балл, %')
+            self.admin_chart_widget.create_bar_chart([0], ['Нет данных'], 'Нет данных', 'Результат последнего теста, %')
 
         # Сохраняем данные для фильтрации
         self.all_users_stats = all_users_stats
@@ -2506,7 +3524,6 @@ class MainWindow(QMainWindow):
         self.admin_stats_table.setRowCount(0)
 
         if not users_stats:
-            # Показываем сообщение о отсутствии данных
             row = self.admin_stats_table.rowCount()
             self.admin_stats_table.insertRow(row)
             no_data_item = QTableWidgetItem("Нет данных о тестах")
@@ -2527,6 +3544,7 @@ class MainWindow(QMainWindow):
 
             # Количество тестов
             tests_count_item = QTableWidgetItem(str(user_stat['total_tests']))
+            tests_count_item.setTextAlignment(Qt.AlignCenter)
             self.admin_stats_table.setItem(row, 1, tests_count_item)
 
             # Верных ответов
@@ -2534,45 +3552,75 @@ class MainWindow(QMainWindow):
                 correct_item = QTableWidgetItem(f"{user_stat['total_correct']}/{user_stat['total_questions']}")
             else:
                 correct_item = QTableWidgetItem("0/0")
+            correct_item.setTextAlignment(Qt.AlignCenter)
             self.admin_stats_table.setItem(row, 2, correct_item)
 
-            # Средний балл с цветом
+            # Средний балл за все тесты
             avg_score = user_stat['avg_percent']
             avg_item = QTableWidgetItem(f"{avg_score:.1f}%")
             if avg_score >= 80:
-                avg_item.setForeground(QColor("#a6e3a1"))
+                avg_item.setForeground(QColor("#27ae60"))
             elif avg_score >= 60:
-                avg_item.setForeground(QColor("#f9e2af"))
+                avg_item.setForeground(QColor("#f39c12"))
             else:
-                avg_item.setForeground(QColor("#f38ba8"))
+                avg_item.setForeground(QColor("#e74c3c"))
+            avg_item.setTextAlignment(Qt.AlignCenter)
             self.admin_stats_table.setItem(row, 3, avg_item)
+
+            # Результат последнего теста
+            last_score = user_stat.get('last_test_percent', 0)
+            last_item = QTableWidgetItem(f"{last_score:.1f}%")
+            if last_score >= 80:
+                last_item.setForeground(QColor("#27ae60"))
+            elif last_score >= 60:
+                last_item.setForeground(QColor("#f39c12"))
+            else:
+                last_item.setForeground(QColor("#e74c3c"))
+            last_item.setTextAlignment(Qt.AlignCenter)
+            self.admin_stats_table.setItem(row, 4, last_item)
 
             # Сдано/Не сдано
             ratio_item = QTableWidgetItem(f"✅ {user_stat['passed_tests']} / ❌ {user_stat['failed_tests']}")
-            self.admin_stats_table.setItem(row, 4, ratio_item)
+            ratio_item.setTextAlignment(Qt.AlignCenter)
+            self.admin_stats_table.setItem(row, 5, ratio_item)
 
-            # Последний тест
+            # Последний тест (дата)
             if user_stat['last_test_date']:
                 date_obj = datetime.fromisoformat(user_stat['last_test_date'].replace(' ', 'T'))
                 date_str = date_obj.strftime('%d.%m.%Y %H:%M')
             else:
                 date_str = "Нет тестов"
-            self.admin_stats_table.setItem(row, 5, QTableWidgetItem(date_str))
+            date_item = QTableWidgetItem(date_str)
+            date_item.setTextAlignment(Qt.AlignCenter)
+            self.admin_stats_table.setItem(row, 6, date_item)
 
             # Кнопка детальной статистики
             details_btn = QPushButton("📊 Подробно")
-            details_btn.clicked.connect(lambda checked, uid=user_stat['user_id']:
-                                        self.view_user_full_stats(uid))
-            self.admin_stats_table.setCellWidget(row, 6, details_btn)
+            details_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #3498db;
+                    color: white;
+                    border: none;
+                    border-radius: 5px;
+                    padding: 5px 10px;
+                    font-size: 11px;
+                }
+                QPushButton:hover {
+                    background-color: #2980b9;
+                }
+            """)
+            details_btn.clicked.connect(lambda checked, uid=user_stat['user_id']: self.view_user_full_stats(uid))
+            self.admin_stats_table.setCellWidget(row, 7, details_btn)
 
         # Настройка ширины колонок
         self.admin_stats_table.setColumnWidth(0, 180)
         self.admin_stats_table.setColumnWidth(1, 70)
-        self.admin_stats_table.setColumnWidth(2, 100)
-        self.admin_stats_table.setColumnWidth(3, 100)
-        self.admin_stats_table.setColumnWidth(4, 120)
-        self.admin_stats_table.setColumnWidth(5, 130)
-        self.admin_stats_table.setColumnWidth(6, 100)
+        self.admin_stats_table.setColumnWidth(2, 110)
+        self.admin_stats_table.setColumnWidth(3, 110)
+        self.admin_stats_table.setColumnWidth(4, 110)
+        self.admin_stats_table.setColumnWidth(5, 120)
+        self.admin_stats_table.setColumnWidth(6, 130)
+        self.admin_stats_table.setColumnWidth(7, 100)
 
     def filter_users_stats(self):
         """Фильтрация пользователей по поиску"""
@@ -2659,7 +3707,7 @@ class MainWindow(QMainWindow):
         # Вкладка общей статистики
         general_stats_tab = QWidget()
         general_stats_tab.setStyleSheet("background-color: #ffffff;")
-        stats_tabs.addTab(general_stats_tab, "📊 Общая статистика")
+        stats_tabs.addTab(general_stats_tab, "📊 Cтатистика")
 
         # Вкладка детальной статистики
         detailed_stats_tab = QWidget()

@@ -12,7 +12,7 @@ class LoginDialog(QDialog):
         super().__init__(parent)
         self.auth_manager = auth_manager
         self.setWindowTitle("Вход в СВГ-Тренажер")
-        self.setFixedSize(500, 500)
+        self.setFixedSize(500, 350)
         self.setModal(True)
         self.setup_ui()
 
@@ -27,7 +27,7 @@ class LoginDialog(QDialog):
         title_font.setBold(True)
         title.setFont(title_font)
         title.setAlignment(Qt.AlignCenter)
-        title.setStyleSheet("color: #2c3e50; background-color: transparent;")
+        title.setStyleSheet("color: #2c3e50; background-color: transparent; border: none;")
         layout.addWidget(title)
         layout.addSpacing(30)
 
@@ -52,14 +52,14 @@ class LoginDialog(QDialog):
         layout.addSpacing(20)
 
         # Кнопка входа
-        self.login_button = QPushButton("🚀 Войти в систему")
+        self.login_button = QPushButton("Войти в систему")
         self.login_button.setMinimumHeight(50)
         self.login_button.clicked.connect(self.login)
         layout.addWidget(self.login_button)
 
         # Сообщение об ошибке
         self.error_label = QLabel("")
-        self.error_label.setStyleSheet("color: #e74c3c; background-color: transparent;")
+        self.error_label.setStyleSheet("color: #e74c3c; background-color: transparent; border: none;")
         self.error_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.error_label)
 
@@ -77,8 +77,6 @@ class LoginDialog(QDialog):
             }
             QLineEdit {
                 padding: 8px;
-                border: 2px solid #bdc3c7;
-                border-radius: 8px;
                 font-size: 14px;
                 background-color: white;
                 color: #2c3e50;
