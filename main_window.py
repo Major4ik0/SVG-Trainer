@@ -1885,6 +1885,10 @@ class MainWindow(QMainWindow):
             if tab_text in ["👥 Пользователи", "❓ Вопросы", "📁 Материалы", "📈 Статистика"]:
                 self.tabWidget.removeTab(i)
 
+        # ВОССТАНАВЛИВАЕМ ВКЛАДКИ ТЕСТИРОВАНИЯ
+        self.setup_test_tab()  # <-- ДОБАВИТЬ
+        self.setup_practice_tab()  # <-- ДОБАВИТЬ
+
         self.show()
         self.update_user_info()
 
@@ -1930,16 +1934,16 @@ class MainWindow(QMainWindow):
                     }
                 """)
 
-        # Настраиваем вкладки для нового пользователя
+        # Настраиваем остальные вкладки
         self.setup_stats_tab_content()
         self.setup_mistakes_tab()
-        self.setup_study_tab()  # <-- ВАЖНО: вызываем этот метод!
+        self.setup_study_tab()
 
         # Загружаем вкладки админа (только если админ)
         self.setup_admin_tabs()
 
         # Загружаем данные
-        self.load_study_materials()  # <-- Теперь материалы должны загрузиться
+        self.load_study_materials()
         self.load_stats()
         self.load_mistakes()
 
@@ -1962,6 +1966,138 @@ class MainWindow(QMainWindow):
         except:
             pass
         self.tabWidget.currentChanged.connect(self.on_tab_changed)
+
+    def setup_test_tab(self):
+        """Настройка вкладки тестирования"""
+        # Получаем layout вкладки testTab
+        layout = self.testTab.layout()
+        if layout is None:
+            layout = QVBoxLayout(self.testTab)
+            layout.setContentsMargins(0, 0, 0, 0)
+        else:
+            # Очищаем существующий layout
+            self.clear_layout(layout)
+
+        # Создаем центральный фрейм
+        test_frame = QFrame()
+        test_frame.setStyleSheet("background-color: transparent; border: none;")
+        test_frame_layout = QVBoxLayout(test_frame)
+        test_frame_layout.setAlignment(Qt.AlignCenter)
+
+        # Заголовок
+        test_title_label = QLabel("🎯 Тестирование знаний")
+        test_title_label.setFont(QFont("", 24, QFont.Bold))
+        test_title_label.setAlignment(Qt.AlignCenter)
+        test_title_label.setStyleSheet("color: #2c3e50;")
+        test_frame_layout.addWidget(test_title_label)
+
+        test_frame_layout.addSpacing(20)
+
+        # Описание
+        test_desc_label = QLabel(
+            "Вам будет предложено 15 случайных вопросов. Для успешного прохождения необходимо набрать 80% правильных ответов.")
+        test_desc_label.setFont(QFont("", 14))
+        test_desc_label.setAlignment(Qt.AlignCenter)
+        test_desc_label.setWordWrap(True)
+        test_desc_label.setStyleSheet("color: #6c757d;")
+        test_frame_layout.addWidget(test_desc_label)
+
+        test_frame_layout.addSpacing(30)
+
+        # Кнопка начала теста
+        start_test_button = QPushButton("▶ Начать тестирование")
+        start_test_button.setMinimumSize(300, 60)
+        start_test_button.setStyleSheet("""
+            QPushButton {
+                background-color: #3498db;
+                color: white;
+                border: none;
+                border-radius: 12px;
+                padding: 12px 24px;
+                font-weight: bold;
+                font-size: 18px;
+            }
+            QPushButton:hover {
+                background-color: #2980b9;
+            }
+            QPushButton:pressed {
+                background-color: #1c6ea4;
+            }
+        """)
+        start_test_button.clicked.connect(self.start_test)
+        test_frame_layout.addWidget(start_test_button)
+
+        test_frame_layout.addStretch()
+        layout.addWidget(test_frame)
+
+        # Сохраняем ссылки
+        self.startTestButton = start_test_button
+
+    def setup_practice_tab(self):
+        """Настройка вкладки учебного теста"""
+        # Получаем layout вкладки practiceTab
+        layout = self.practiceTab.layout()
+        if layout is None:
+            layout = QVBoxLayout(self.practiceTab)
+            layout.setContentsMargins(0, 0, 0, 0)
+        else:
+            # Очищаем существующий layout
+            self.clear_layout(layout)
+
+        # Создаем центральный фрейм
+        practice_frame = QFrame()
+        practice_frame.setStyleSheet("background-color: transparent; border: none;")
+        practice_frame_layout = QVBoxLayout(practice_frame)
+        practice_frame_layout.setAlignment(Qt.AlignCenter)
+
+        # Заголовок
+        practice_title_label = QLabel("📖 Учебный тест с подсказками")
+        practice_title_label.setFont(QFont("", 24, QFont.Bold))
+        practice_title_label.setAlignment(Qt.AlignCenter)
+        practice_title_label.setStyleSheet("color: #2c3e50;")
+        practice_frame_layout.addWidget(practice_title_label)
+
+        practice_frame_layout.addSpacing(20)
+
+        # Описание
+        practice_desc_label = QLabel(
+            "Идеально для подготовки! После каждого ответа вы увидите правильный вариант и пояснение.")
+        practice_desc_label.setFont(QFont("", 14))
+        practice_desc_label.setAlignment(Qt.AlignCenter)
+        practice_desc_label.setWordWrap(True)
+        practice_desc_label.setStyleSheet("color: #6c757d;")
+        practice_frame_layout.addWidget(practice_desc_label)
+
+        practice_frame_layout.addSpacing(30)
+
+        # Кнопка начала учебного теста
+        start_practice_button = QPushButton("▶ Начать учебный тест")
+        start_practice_button.setMinimumSize(300, 60)
+        start_practice_button.setStyleSheet("""
+            QPushButton {
+                background-color: #27ae60;
+                color: white;
+                border: none;
+                border-radius: 12px;
+                padding: 12px 24px;
+                font-weight: bold;
+                font-size: 18px;
+            }
+            QPushButton:hover {
+                background-color: #219a52;
+            }
+            QPushButton:pressed {
+                background-color: #1e8449;
+            }
+        """)
+        start_practice_button.clicked.connect(self.start_practice)
+        practice_frame_layout.addWidget(start_practice_button)
+
+        practice_frame_layout.addStretch()
+        layout.addWidget(practice_frame)
+
+        # Сохраняем ссылки
+        self.startPracticeButton = start_practice_button
 
     def reset_ui_for_new_user(self):
         """Сброс UI для нового пользователя"""
@@ -2633,8 +2769,8 @@ class MainWindow(QMainWindow):
         self.statsResultsLayout = statsResultsLayout
 
     def clear_ui_state(self):
-        """Полная очистка состояния интерфейса"""
-        # Очищаем вкладки
+        """Полная очистка состояния интерфейса (кроме вкладок тестирования)"""
+        # Очищаем админские вкладки
         if hasattr(self, 'admin_users_tab') and self.admin_users_tab:
             self.admin_users_tab = None
         if hasattr(self, 'admin_questions_tab') and self.admin_questions_tab:
@@ -2646,14 +2782,9 @@ class MainWindow(QMainWindow):
 
         # Очищаем layout вкладки статистики
         if hasattr(self, 'statsTab'):
-            # Полностью очищаем statsTab
             old_layout = self.statsTab.layout()
             if old_layout:
                 self.clear_layout(old_layout)
-
-            # Создаем новый пустой layout
-            new_layout = QVBoxLayout(self.statsTab)
-            new_layout.setContentsMargins(0, 0, 0, 0)
 
         # Очищаем layout вкладки обучения
         if hasattr(self, 'studyTab'):
@@ -2661,35 +2792,13 @@ class MainWindow(QMainWindow):
             if old_layout:
                 self.clear_layout(old_layout)
 
-            new_layout = QVBoxLayout(self.studyTab)
-            new_layout.setContentsMargins(0, 0, 0, 0)
-
         # Очищаем layout вкладки ошибок
         if hasattr(self, 'mistakesTab'):
             old_layout = self.mistakesTab.layout()
             if old_layout:
                 self.clear_layout(old_layout)
 
-            new_layout = QVBoxLayout(self.mistakesTab)
-            new_layout.setContentsMargins(0, 0, 0, 0)
-
-        # Очищаем layout вкладки тестирования (если нужно)
-        if hasattr(self, 'testTab'):
-            old_layout = self.testTab.layout()
-            if old_layout:
-                self.clear_layout(old_layout)
-
-            new_layout = QVBoxLayout(self.testTab)
-            new_layout.setContentsMargins(0, 0, 0, 0)
-
-        # Очищаем layout вкладки практики
-        if hasattr(self, 'practiceTab'):
-            old_layout = self.practiceTab.layout()
-            if old_layout:
-                self.clear_layout(old_layout)
-
-            new_layout = QVBoxLayout(self.practiceTab)
-            new_layout.setContentsMargins(0, 0, 0, 0)
+        # НЕ ОЧИЩАЕМ testTab и practiceTab - они будут восстановлены в on_login_success
 
         # Отключаем сигналы смены вкладки
         try:
