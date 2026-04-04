@@ -109,10 +109,6 @@ class LoginDialog(QDialog):
             return
 
         if self.auth_manager.login(username, password):
-            # Дополнительная проверка - кто залогинился
-            current_user = self.auth_manager.get_current_user()
-            print(f"Logged in as: {current_user['username']}, role: {current_user['role']}")
-
             self.login_successful.emit()
             self.accept()
         else:

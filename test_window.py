@@ -815,7 +815,6 @@ class TestWindow(QDialog):
             self.load_question(self.current_index)
 
     def finish_test(self):
-        # Сохраняем ответ на текущий вопрос
         if not self.answered[self.current_index] and not self.training_mode:
             q = self.questions[self.current_index]
             correct_count = bin(q['correct_mask']).count("1")
@@ -842,20 +841,23 @@ class TestWindow(QDialog):
                     'selected_mask': user_mask,
                     'correct': correct,
                     'correct_mask': correct_mask,
-                    'explanation': q['explanation'],
+                    'explanation': q.get('explanation', ''),
                     'options': [q['option1'], q['option2'], q['option3'], q['option4']]
                 }
                 self.answered[self.current_index] = True
 
+        # Фильтруем только отвеченные вопросы (убираем None)
         answered_answers = [a for a in self.answers if a is not None]
         score = sum(1 for a in answered_answers if a['correct'])
         total = len(self.questions)
 
         if not self.training_mode:
-            passed = (score / total * 100) >= 80
-            self.db.save_test_result(self.user_id, score, total, self.answers)
+            passed = (score / total * 100) >= 80 if total > 0 else False
 
-            percent = score / total * 100
+            # ВАЖНО: Сохраняем ТОЛЬКО отвеченные ответы, а не весь массив с None
+            self.db.save_test_result(self.user_id, score, total, answered_answers)
+
+            percent = score / total * 100 if total > 0 else 0
 
             msg = f"📊 Правильных ответов: {score} из {total} ({percent:.1f}%)\n"
             if percent >= 85:
@@ -874,7 +876,7 @@ class TestWindow(QDialog):
                 QMessageBox.information(self, "💡 Совет",
                                         "Повторите материал в разделе 'Обучение' и попробуйте снова.")
         else:
-            percent = score / total * 100
+            percent = score / total * 100 if total > 0 else 0
             QMessageBox.information(self, "📊 Итог",
                                     f"Правильных ответов: {score} из {total} ({percent:.1f}%)")
 

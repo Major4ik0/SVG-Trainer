@@ -72,24 +72,68 @@ class MainWindow(QMainWindow):
             self.logoutButton.clicked.connect(self.logout)
 
     def setup_study_tab(self):
-        """Настройка вкладки обучения с поддержкой PDF и изображений"""
-        layout = QVBoxLayout(self.studyTab)
+        """Настройка вкладки обучения - видна всем пользователям"""
+        # Получаем или создаем layout
+        layout = self.studyTab.layout()
+        if layout is None:
+            layout = QVBoxLayout(self.studyTab)
+            layout.setContentsMargins(10, 10, 10, 10)
+        else:
+            # Очищаем layout
+            self.clear_layout(layout)
 
-        # Кнопка добавления материала для админа
-        self.addMaterialButton = QPushButton("➕ Добавить учебный материал")
-        self.addMaterialButton.clicked.connect(self.add_learning_material)
-        layout.addWidget(self.addMaterialButton)
+        # Кнопка добавления материала (только для админа)
+        if self.auth_manager.is_admin():
+            addMaterialButton = QPushButton("➕ Добавить учебный материал")
+            addMaterialButton.clicked.connect(self.add_learning_material)
+            addMaterialButton.setStyleSheet("""
+                QPushButton {
+                    background-color: #27ae60;
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    padding: 10px;
+                    font-weight: bold;
+                    margin-bottom: 10px;
+                }
+            """)
+            layout.addWidget(addMaterialButton)
+            self.addMaterialButton = addMaterialButton
+        elif hasattr(self, 'addMaterialButton'):
+            # Если кнопка существовала, но пользователь не админ - удаляем ссылку
+            self.addMaterialButton = None
 
-        # Область для материалов
-        self.studyScrollArea = QScrollArea()
-        self.studyScrollArea.setWidgetResizable(True)
-        self.studyContent = QWidget()
-        self.studyMaterialsLayout = QVBoxLayout(self.studyContent)
-        self.studyScrollArea.setWidget(self.studyContent)
-        layout.addWidget(self.studyScrollArea)
+        # Область для материалов (видна всем)
+        studyScrollArea = QScrollArea()
+        studyScrollArea.setWidgetResizable(True)
+        studyScrollArea.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background-color: transparent;
+            }
+            QScrollBar:vertical {
+                background: #e9ecef;
+                width: 10px;
+                border-radius: 5px;
+            }
+            QScrollBar::handle:vertical {
+                background: #3498db;
+                border-radius: 5px;
+            }
+        """)
 
-        if not self.auth_manager.is_admin():
-            self.addMaterialButton.hide()
+        studyContent = QWidget()
+        studyContent.setStyleSheet("background-color: transparent;")
+        studyMaterialsLayout = QVBoxLayout(studyContent)
+        studyMaterialsLayout.setSpacing(10)
+        studyMaterialsLayout.setContentsMargins(5, 5, 5, 5)
+        studyScrollArea.setWidget(studyContent)
+        layout.addWidget(studyScrollArea)
+
+        # Сохраняем ссылки
+        self.studyScrollArea = studyScrollArea
+        self.studyContent = studyContent
+        self.studyMaterialsLayout = studyMaterialsLayout
 
     def view_user_full_stats(self, user_id):
         """Просмотр полной статистики пользователя (для админа)"""
@@ -250,25 +294,86 @@ class MainWindow(QMainWindow):
         dialog.exec_()
 
     def setup_mistakes_tab(self):
-        """Настройка вкладки ошибок - используем виджеты из UI"""
-        # Не создаем новый layout, используем существующий из UI
-        # Очищаем существующие виджеты в mistakesLayout
-        if hasattr(self, 'mistakesLayout'):
-            for i in reversed(range(self.mistakesLayout.count())):
-                widget = self.mistakesLayout.itemAt(i).widget()
-                if widget:
-                    widget.deleteLater()
+        """Настройка вкладки ошибок - используем виджеты из UI или создаем новые"""
+        # Получаем или создаем layout
+        layout = self.mistakesTab.layout()
+        if layout is None:
+            layout = QVBoxLayout(self.mistakesTab)
+            layout.setContentsMargins(10, 10, 10, 10)
+        else:
+            # Очищаем layout, но не удаляем сами виджеты (они удалятся при clear_layout)
+            self.clear_layout(layout)
 
-        # Добавляем информационную метку, если нужно
-        if not hasattr(self, 'mistakesLabel'):
-            self.mistakesLabel = QLabel("❗ Вопросы, в которых были допущены ошибки:")
-            self.mistakesLabel.setFont(QFont("", 14, QFont.Bold))
-            self.mistakesLabel.setStyleSheet("color: #2c3e50; padding: 10px; background-color: transparent;")
-            # Вставляем в начало layout
-            self.mistakesLayout.insertWidget(0, self.mistakesLabel)
+        # Заголовок
+        header_layout = QHBoxLayout()
+
+        mistakesLabel = QLabel("❗ Вопросы, в которых были допущены ошибки:")
+        mistakesLabel.setFont(QFont("", 14, QFont.Bold))
+        mistakesLabel.setStyleSheet("color: #2c3e50;")
+        header_layout.addWidget(mistakesLabel)
+
+        header_layout.addStretch()
+
+        # Создаем НОВУЮ кнопку обновления (старая могла быть удалена)
+        refreshMistakesButton = QPushButton("🔄 Обновить")
+        refreshMistakesButton.setStyleSheet("""
+            QPushButton {
+                background-color: #6c757d;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                padding: 8px 16px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #5a6268;
+            }
+        """)
+        refreshMistakesButton.clicked.connect(self.load_mistakes)
+        header_layout.addWidget(refreshMistakesButton)
+
+        # Сохраняем ссылку на кнопку для использования в других методах
+        self.refreshMistakesButton = refreshMistakesButton
+
+        layout.addLayout(header_layout)
+
+        # Scroll area для списка ошибок
+        mistakesScrollArea = QScrollArea()
+        mistakesScrollArea.setWidgetResizable(True)
+        mistakesScrollArea.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background-color: transparent;
+            }
+            QScrollBar:vertical {
+                background: #e9ecef;
+                width: 10px;
+                border-radius: 5px;
+            }
+            QScrollBar::handle:vertical {
+                background: #3498db;
+                border-radius: 5px;
+            }
+        """)
+
+        mistakesContent = QWidget()
+        mistakesContent.setStyleSheet("background-color: transparent;")
+        mistakesLayout = QVBoxLayout(mistakesContent)
+        mistakesLayout.setSpacing(10)
+        mistakesLayout.setContentsMargins(5, 5, 5, 5)
+        mistakesScrollArea.setWidget(mistakesContent)
+        layout.addWidget(mistakesScrollArea)
+
+        # Сохраняем ссылки
+        self.mistakesScrollArea = mistakesScrollArea
+        self.mistakesContent = mistakesContent
+        self.mistakesLayout = mistakesLayout
 
     def show_login_dialog(self):
+        """Показ диалога входа"""
         self.hide()
+        self.clear_ui_state()  # Очищаем состояние перед входом
+
         login_dialog = LoginDialog(self.auth_manager, self)
         login_dialog.login_successful.connect(self.on_login_success)
 
@@ -587,7 +692,7 @@ class MainWindow(QMainWindow):
 
         for mistake in mistakes:
             card = QFrame()
-            card.setStyleSheet("background-color: #f5f5f5; border-radius: 12px; margin: 8px; padding: 15px;")
+            card.setStyleSheet("background-color: #f5f5f5; border-radius: 10px; margin: 1px; padding: 3px;")
 
             card_layout = QVBoxLayout(card)
 
@@ -1372,13 +1477,18 @@ class MainWindow(QMainWindow):
         self.load_mistakes()
 
     def change_user(self):
-        """Смена пользователя без перезапуска приложения"""
+        """Смена пользователя с полной очисткой"""
         reply = QMessageBox.question(self, "Смена пользователя",
                                      "Вы действительно хотите сменить пользователя?\nТекущая сессия будет завершена.",
                                      QMessageBox.Yes | QMessageBox.No)
         if reply == QMessageBox.Yes:
-            # Очищаем текущего пользователя
+            # Очищаем состояние
             self.auth_manager.logout()
+            self.clear_ui_state()
+
+            # Очищаем данные пользователя из интерфейса
+            if hasattr(self, 'userLabel'):
+                self.userLabel.setText("Пользователь")
 
             # Скрываем главное окно
             self.hide()
@@ -1393,8 +1503,26 @@ class MainWindow(QMainWindow):
                 sys.exit(0)
 
     def logout(self):
+        """Выход из системы с полной очисткой"""
+        # Очищаем состояние
         self.auth_manager.logout()
-        self.show_login_dialog()
+        self.clear_ui_state()
+
+        # Очищаем данные пользователя из интерфейса
+        if hasattr(self, 'userLabel'):
+            self.userLabel.setText("Пользователь")
+
+        # Закрываем главное окно и показываем диалог входа
+        self.hide()
+
+        # Создаем новый диалог входа
+        login_dialog = LoginDialog(self.auth_manager, self)
+        login_dialog.login_successful.connect(self.on_login_success)
+
+        # Если диалог закрыт без входа - выходим
+        if login_dialog.exec_() != QDialog.Accepted:
+            QApplication.quit()
+            sys.exit(0)
 
     def restart_application(self):
         python = sys.executable
@@ -1414,36 +1542,23 @@ class MainWindow(QMainWindow):
         dialog.setWindowTitle(f"📊 Детальная статистика: {user['full_name']}")
         dialog.setMinimumSize(900, 700)
         dialog.setStyleSheet("""
-            QDialog {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 #1a1a2e, stop:1 #16213e);
-            }
-            QLabel {
-                color: #e2e2e2;
-            }
-            QPushButton {
-                background: #e94560;
-                color: white;
-                border: none;
-                border-radius: 8px;
-                padding: 8px 16px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background: #ff6b6b;
-            }
-            QTableWidget {
-                background-color: #2c2c3e;
-                color: #e2e2e2;
-                gridline-color: #4a4a5a;
-                border-radius: 10px;
-            }
-            QHeaderView::section {
-                background-color: #0f3460;
-                color: #e2e2e2;
-                padding: 8px;
-            }
-        """)
+                QDialog {
+                    background-color: #f0f2f5;
+                }
+                QLabel {
+                    color: #2c3e50;
+                }
+                QPushButton {
+                    background-color: #e94560;
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    padding: 8px 16px;
+                }
+                QPushButton:hover {
+                    background-color: #c0392b;
+                }
+            """)
 
         layout = QVBoxLayout(dialog)
 
@@ -1455,8 +1570,8 @@ class MainWindow(QMainWindow):
             passed_count = sum(1 for r in results if r['passed'])
 
             info_text = f"""
-            <div style='background-color: #ffffff; border-radius: 15px; padding: 20px; border: 1px solid #dee2e6;'>
-                <h2 style='color: #2c3e50;'>👤 {user['full_name']}</h2>
+            <div style='background-color: #f0f2f5; border-radius: 15px; padding: 20px; border: 1px solid #dee2e6;'>
+                <h2 style='color: #495057;'>👤 {user['full_name']}</h2>
                 <p style='color: #495057;'>📝 <b>Логин:</b> {user['username']}</p>
                 <p style='color: #495057;'>📊 <b>Всего тестов:</b> {len(results)}</p>
                 <p style='color: #495057;'>✅ <b>Правильных ответов:</b> {total_score} из {total_questions}</p>
@@ -1537,43 +1652,82 @@ class MainWindow(QMainWindow):
         dialog.setMinimumSize(800, 600)
         dialog.setStyleSheet("""
             QDialog {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 #c1c1d9, stop:1 #e3e1ed);
+                background-color: #f0f2f5;
             }
             QLabel {
-                color: #e2e2e2;
+                color: #2c3e50;
             }
             QPushButton {
-                background: #e94560;
+                background-color: #e94560;
                 color: white;
                 border: none;
                 border-radius: 8px;
                 padding: 8px 16px;
             }
+            QPushButton:hover {
+                background-color: #c0392b;
+            }
         """)
 
         layout = QVBoxLayout(dialog)
+        layout.setSpacing(10)
+        layout.setContentsMargins(15, 15, 15, 15)
 
         # Общая информация
         percent = result['score'] / result['total'] * 100
+        info_frame = QFrame()
+        info_frame.setStyleSheet("""
+            QFrame {
+                background-color: #ffffff;
+                border-radius: 15px;
+                border: 1px solid #dee2e6;
+            }
+        """)
+        info_layout = QVBoxLayout(info_frame)
+
         info_label = QLabel(f"""
-        <div style='text-align: center; padding: 20px; style='color: #000;'>
-            <h2 style='color: #e94560;'>Результат теста</h2>
-            <p><b>Дата:</b> {result['date']}</p>
-            <p><b>Результат:</b> {result['score']}/{result['total']} ({percent:.1f}%)</p>
-            <p><b>Статус:</b> <span style='color: {"#4caf50" if result['passed'] else "#f44336"};'>
-                {"✅ Сдано" if result['passed'] else "❌ Не сдано"}
+        <div style='text-align: center; padding: 20px;'>
+            <h2 style='color: #e94560; margin: 0 0 10px 0;'>Результат теста</h2>
+            <p style='margin: 5px 0;'><b>📅 Дата:</b> {result['date']}</p>
+            <p style='margin: 5px 0;'><b>📊 Результат:</b> {result['score']}/{result['total']} ({percent:.1f}%)</p>
+            <p style='margin: 5px 0;'><b>🏆 Статус:</b> <span style='color: {"#27ae60" if result['passed'] else "#e74c3c"}; font-weight: bold;'>
+                {"✅ СДАНО" if result['passed'] else "❌ НЕ СДАНО"}
             </span></p>
         </div>
         """)
         info_label.setWordWrap(True)
-        layout.addWidget(info_label)
+        info_label.setStyleSheet("background-color: transparent;")
+        info_layout.addWidget(info_label)
+
+        layout.addWidget(info_frame)
 
         # Список вопросов
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
+        scroll.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background-color: transparent;
+            }
+            QScrollBar:vertical {
+                background: #e9ecef;
+                width: 10px;
+                border-radius: 5px;
+            }
+            QScrollBar::handle:vertical {
+                background: #3498db;
+                border-radius: 5px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background: #2980b9;
+            }
+        """)
+
         scroll_widget = QWidget()
+        scroll_widget.setStyleSheet("background-color: transparent;")
         scroll_layout = QVBoxLayout(scroll_widget)
+        scroll_layout.setSpacing(10)
+        scroll_layout.setContentsMargins(5, 5, 5, 5)
 
         for i, detail in enumerate(details, 1):
             if detail is None:
@@ -1582,57 +1736,134 @@ class MainWindow(QMainWindow):
             card = QFrame()
             card.setStyleSheet(f"""
                 QFrame {{
-                    background-color: #2c2c3e;
-                    border-radius: 10px;
+                    background-color: #ffffff;
+                    border-radius: 12px;
                     margin: 5px;
-                    padding: 10px;
-                    border-left: 5px solid {"#4caf50" if detail['correct'] else "#f44336"};
+                    padding: 15px;
+                    border-left: 5px solid {"#27ae60" if detail['correct'] else "#e74c3c"};
+                    border-right: 1px solid #dee2e6;
+                    border-top: 1px solid #dee2e6;
+                    border-bottom: 1px solid #dee2e6;
+                }}
+                QFrame:hover {{
+                    background-color: #f8f9fa;
                 }}
             """)
 
             card_layout = QVBoxLayout(card)
+            card_layout.setSpacing(10)
 
-            # Вопрос
-            q_text = QLabel(f"<b>Вопрос {i}:</b> {detail['question_text'][:200]}...")
+            # Заголовок вопроса
+            header_layout = QHBoxLayout()
+
+            question_num = QLabel(f"<b>Вопрос {i}</b>")
+            question_num.setStyleSheet("color: #3498db; font-size: 14px; background-color: transparent;")
+            header_layout.addWidget(question_num)
+
+            header_layout.addStretch()
+
+            # Статус ответа
+            status_text = "✅ ВЕРНО" if detail['correct'] else "❌ НЕВЕРНО"
+            status_color = "#27ae60" if detail['correct'] else "#e74c3c"
+            status_bg = "#d4edda" if detail['correct'] else "#f8d7da"
+
+            status_label = QLabel(status_text)
+            status_label.setStyleSheet(f"""
+                QLabel {{
+                    color: {status_color};
+                    background-color: {status_bg};
+                    padding: 4px 12px;
+                    border-radius: 12px;
+                    font-size: 11px;
+                    font-weight: bold;
+                }}
+            """)
+            header_layout.addWidget(status_label)
+
+            card_layout.addLayout(header_layout)
+
+            # Текст вопроса
+            q_text = QLabel(detail['question_text'])
             q_text.setWordWrap(True)
+            q_text.setStyleSheet("color: #2c3e50; font-size: 13px; background-color: transparent;")
             card_layout.addWidget(q_text)
 
-            # Ответ
-            status_text = "✅ Верно" if detail['correct'] else "❌ Неверно"
-            status_color = "#4caf50" if detail['correct'] else "#f44336"
+            # Разделитель
+            line = QFrame()
+            line.setFrameShape(QFrame.HLine)
+            line.setStyleSheet("background-color: #dee2e6; max-height: 1px;")
+            card_layout.addWidget(line)
 
-            # Показываем выбранные ответы
+            # Ваш ответ
             selected_options = []
             for j, opt in enumerate(detail['options']):
                 if (detail['selected_mask'] >> j) & 1:
                     selected_options.append(opt)
 
+            your_answer_label = QLabel(
+                f"<b>📌 Ваш ответ:</b> {', '.join(selected_options) if selected_options else 'Не выбран'}")
+            your_answer_label.setWordWrap(True)
+            if not detail['correct']:
+                your_answer_label.setStyleSheet(
+                    "color: #e74c3c; background-color: #fee; padding: 5px; border-radius: 6px;")
+            else:
+                your_answer_label.setStyleSheet(
+                    "color: #27ae60; background-color: #efe; padding: 5px; border-radius: 6px;")
+            card_layout.addWidget(your_answer_label)
+
+            # Правильный ответ
             correct_options = []
             for j, opt in enumerate(detail['options']):
                 if (detail['correct_mask'] >> j) & 1:
                     correct_options.append(opt)
 
-            answer_text = f"""
-            <p><span style='color: {status_color};'><b>{status_text}</b></span></p>
-            <p><b>📌 Ваш ответ:</b> {', '.join(selected_options) if selected_options else 'Не выбран'}</p>
-            <p><b>✅ Правильный ответ:</b> {', '.join(correct_options)}</p>
-            """
+            correct_answer_label = QLabel(f"<b>✅ Правильный ответ:</b> {', '.join(correct_options)}")
+            correct_answer_label.setWordWrap(True)
+            correct_answer_label.setStyleSheet(
+                "color: #27ae60; background-color: #d4edda; padding: 5px; border-radius: 6px;")
+            card_layout.addWidget(correct_answer_label)
 
+            # Пояснение
             if detail.get('explanation'):
-                answer_text += f"<p><b>💡 Пояснение:</b> {detail['explanation']}</p>"
-
-            answer_label = QLabel(answer_text)
-            answer_label.setWordWrap(True)
-            card_layout.addWidget(answer_label)
+                explanation_label = QLabel(f"<b>💡 Пояснение:</b> {detail['explanation']}")
+                explanation_label.setWordWrap(True)
+                explanation_label.setStyleSheet(
+                    "color: #3498db; background-color: #e3f2fd; padding: 8px; border-radius: 6px;")
+                card_layout.addWidget(explanation_label)
 
             scroll_layout.addWidget(card)
+
+        # Добавляем растяжение в конец
+        scroll_layout.addStretch()
 
         scroll.setWidget(scroll_widget)
         layout.addWidget(scroll)
 
+        # Кнопка закрытия
         close_btn = QPushButton("✖ Закрыть")
+        close_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #6c757d;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                padding: 10px 20px;
+                font-size: 14px;
+                font-weight: bold;
+                min-width: 120px;
+            }
+            QPushButton:hover {
+                background-color: #5a6268;
+            }
+        """)
         close_btn.clicked.connect(dialog.accept)
-        layout.addWidget(close_btn)
+
+        # Кнопка в центре
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+        button_layout.addWidget(close_btn)
+        button_layout.addStretch()
+        layout.addLayout(button_layout)
 
         dialog.exec_()
 
@@ -1640,11 +1871,19 @@ class MainWindow(QMainWindow):
         """После успешного входа"""
         user = self.auth_manager.get_current_user()
 
-        # КРИТИЧНО: Проверяем, что пользователь действительно залогинен
         if not user:
             QMessageBox.critical(self, "Ошибка", "Не удалось получить данные пользователя")
             self.show_login_dialog()
             return
+
+        # Очищаем предыдущее состояние
+        self.clear_ui_state()
+
+        # Удаляем админские вкладки если они есть
+        for i in range(self.tabWidget.count() - 1, -1, -1):
+            tab_text = self.tabWidget.tabText(i)
+            if tab_text in ["👥 Пользователи", "❓ Вопросы", "📁 Материалы", "📈 Статистика"]:
+                self.tabWidget.removeTab(i)
 
         self.show()
         self.update_user_info()
@@ -1690,23 +1929,23 @@ class MainWindow(QMainWindow):
                         background-color: #1e8449;
                     }
                 """)
-        self.setup_stats_tab_content()
-        # self.setup_mistakes_tab()
-        # self.setup_study_tab()
 
-        # Загружаем вкладки
+        # Настраиваем вкладки для нового пользователя
+        self.setup_stats_tab_content()
+        self.setup_mistakes_tab()
+        self.setup_study_tab()  # <-- ВАЖНО: вызываем этот метод!
+
+        # Загружаем вкладки админа (только если админ)
         self.setup_admin_tabs()
 
         # Загружаем данные
-        self.load_study_materials()
+        self.load_study_materials()  # <-- Теперь материалы должны загрузиться
         self.load_stats()
         self.load_mistakes()
 
         if self.auth_manager.is_admin():
-            print("Loading admin stats...")
             self.load_admin_stats()
         else:
-            print("Regular user - hiding admin tabs")
             # Скрываем админские вкладки, если они есть
             if hasattr(self, 'admin_users_tab') and self.admin_users_tab:
                 self.admin_users_tab.hide()
@@ -1718,15 +1957,49 @@ class MainWindow(QMainWindow):
                 self.admin_stats_tab.hide()
 
         # Подключаем сигнал смены вкладки
+        try:
+            self.tabWidget.currentChanged.disconnect()
+        except:
+            pass
         self.tabWidget.currentChanged.connect(self.on_tab_changed)
+
+    def reset_ui_for_new_user(self):
+        """Сброс UI для нового пользователя"""
+        # Сбрасываем данные на вкладках
+        if hasattr(self, 'statsInfoLabel'):
+            self.statsInfoLabel.setText("Загрузка статистики...")
+
+        if hasattr(self, 'chart_widget'):
+            self.chart_widget.update_chart([])
+
+        if hasattr(self, 'pie_chart_widget'):
+            self.pie_chart_widget.create_pie_chart([1], ['Нет данных'], 'Нет пройденных тестов', ['#6c7086'])
+
+        # Очищаем список материалов
+        if hasattr(self, 'studyMaterialsLayout'):
+            for i in reversed(range(self.studyMaterialsLayout.count())):
+                widget = self.studyMaterialsLayout.itemAt(i).widget()
+                if widget:
+                    widget.deleteLater()
+
+        # Очищаем список ошибок
+        if hasattr(self, 'mistakesLayout'):
+            for i in reversed(range(self.mistakesLayout.count())):
+                widget = self.mistakesLayout.itemAt(i).widget()
+                if widget:
+                    widget.deleteLater()
+
+        # Очищаем список результатов
+        if hasattr(self, 'statsResultsLayout'):
+            for i in reversed(range(self.statsResultsLayout.count())):
+                widget = self.statsResultsLayout.itemAt(i).widget()
+                if widget:
+                    widget.deleteLater()
 
     def setup_admin_tabs(self):
         """Настройка админских вкладок - только если пользователь админ"""
         if not self.auth_manager.is_admin():
-            print("User is not admin, skipping admin tabs setup")
             return
-
-        print("Setting up admin tabs...")
 
         # Проверяем, не добавлены ли уже вкладки
         admin_tab_names = ["👥 Пользователи", "❓ Вопросы", "📁 Материалы", "📈 Статистика"]
@@ -1771,7 +2044,7 @@ class MainWindow(QMainWindow):
             self.load_questions_list()
 
     def clear_layout(self, layout):
-        """Очистка layout от всех виджетов"""
+        """Безопасная очистка layout от всех виджетов"""
         if layout is not None:
             while layout.count():
                 item = layout.takeAt(0)
@@ -1779,7 +2052,10 @@ class MainWindow(QMainWindow):
                 if widget is not None:
                     widget.deleteLater()
                 else:
-                    self.clear_layout(item.layout())
+                    # Если это не виджет, а другой layout (вложенный)
+                    sub_layout = item.layout()
+                    if sub_layout:
+                        self.clear_layout(sub_layout)
 
     def load_stats(self):
         """Загрузка расширенной статистики для пользователя"""
@@ -2187,22 +2463,42 @@ class MainWindow(QMainWindow):
         layout = self.statsTab.layout()
         if layout is None:
             layout = QVBoxLayout(self.statsTab)
+            layout.setContentsMargins(0, 0, 0, 0)
+        else:
+            # Очищаем существующий layout
+            self.clear_layout(layout)
 
         # Создаем scroll area для всего содержимого
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
-        scroll_area.setStyleSheet("QScrollArea { border: none; background-color: transparent; }")
+        scroll_area.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background-color: transparent;
+            }
+            QScrollBar:vertical {
+                background: #e9ecef;
+                width: 10px;
+                border-radius: 5px;
+            }
+            QScrollBar::handle:vertical {
+                background: #3498db;
+                border-radius: 5px;
+            }
+        """)
 
         # Создаем контейнер для содержимого
         content_widget = QWidget()
         content_widget.setStyleSheet("background-color: transparent;")
         content_layout = QVBoxLayout(content_widget)
+        content_layout.setContentsMargins(10, 10, 10, 10)
+        content_layout.setSpacing(10)
 
         # Создаем вкладки внутри статистики
-        self.stats_tabs = QTabWidget()
-        self.stats_tabs.setStyleSheet("""
+        stats_tabs = QTabWidget()
+        stats_tabs.setStyleSheet("""
             QTabWidget::pane {
-                background-color: #f8f9fa;
+                background-color: #ffffff;
                 border: 1px solid #dee2e6;
                 border-radius: 10px;
             }
@@ -2222,19 +2518,19 @@ class MainWindow(QMainWindow):
                 background-color: #dee2e6;
             }
         """)
-        content_layout.addWidget(self.stats_tabs)
+        content_layout.addWidget(stats_tabs)
 
         # Вкладка общей статистики
-        self.general_stats_tab = QWidget()
-        self.general_stats_tab.setStyleSheet("background-color: #f8f9fa;")
-        self.stats_tabs.addTab(self.general_stats_tab, "📊 Общая статистика")
+        general_stats_tab = QWidget()
+        general_stats_tab.setStyleSheet("background-color: #ffffff;")
+        stats_tabs.addTab(general_stats_tab, "📊 Общая статистика")
 
         # Вкладка детальной статистики
-        self.detailed_stats_tab = QWidget()
-        self.detailed_stats_tab.setStyleSheet("background-color: #f8f9fa;")
-        self.stats_tabs.addTab(self.detailed_stats_tab, "📈 Детальная статистика")
+        detailed_stats_tab = QWidget()
+        detailed_stats_tab.setStyleSheet("background-color: #ffffff;")
+        stats_tabs.addTab(detailed_stats_tab, "📈 Детальная статистика")
 
-        # Настройка общей статистики - с прокруткой внутри
+        # Настройка общей статистики
         general_scroll = QScrollArea()
         general_scroll.setWidgetResizable(True)
         general_scroll.setStyleSheet("QScrollArea { border: none; background-color: transparent; }")
@@ -2243,66 +2539,160 @@ class MainWindow(QMainWindow):
         general_content.setStyleSheet("background-color: transparent;")
         general_layout = QVBoxLayout(general_content)
         general_layout.setSpacing(15)
+        general_layout.setContentsMargins(15, 15, 15, 15)
 
         # Информационная карточка
-        self.statsInfoLabel = QLabel()
-        self.statsInfoLabel.setWordWrap(True)
-        self.statsInfoLabel.setStyleSheet("""
-            background-color: white;
+        statsInfoLabel = QLabel()
+        statsInfoLabel.setWordWrap(True)
+        statsInfoLabel.setStyleSheet("""
+            background-color: #f8f9fa;
             padding: 15px;
             border-radius: 10px;
             border: 1px solid #dee2e6;
         """)
-        self.statsInfoLabel.setMinimumHeight(200)
-        general_layout.addWidget(self.statsInfoLabel)
+        statsInfoLabel.setMinimumHeight(200)
+        general_layout.addWidget(statsInfoLabel)
 
         # График динамики
         chart_label = QLabel("📈 Динамика результатов:")
         chart_label.setFont(QFont("Segoe UI", 12, QFont.Bold))
-        chart_label.setStyleSheet("color: #2c3e50; background-color: transparent;")
+        chart_label.setStyleSheet("color: #2c3e50; background-color: transparent; padding-top: 10px;")
         general_layout.addWidget(chart_label)
 
-        self.chart_widget = StatisticsChart()
-        self.chart_widget.setMinimumHeight(400)
-        self.chart_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        general_layout.addWidget(self.chart_widget)
+        chart_widget = StatisticsChart()
+        chart_widget.setMinimumHeight(400)
+        chart_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        general_layout.addWidget(chart_widget)
 
         # Круговая диаграмма
         pie_chart_label = QLabel("📊 Соотношение успешных и неуспешных тестов:")
         pie_chart_label.setFont(QFont("Segoe UI", 12, QFont.Bold))
-        pie_chart_label.setStyleSheet("color: #2c3e50; background-color: transparent;")
+        pie_chart_label.setStyleSheet("color: #2c3e50; background-color: transparent; padding-top: 10px;")
         general_layout.addWidget(pie_chart_label)
 
-        self.pie_chart_widget = StatisticsChart()
-        self.pie_chart_widget.setMinimumHeight(300)
-        general_layout.addWidget(self.pie_chart_widget)
+        pie_chart_widget = StatisticsChart()
+        pie_chart_widget.setMinimumHeight(300)
+        general_layout.addWidget(pie_chart_widget)
 
         general_layout.addStretch()
         general_scroll.setWidget(general_content)
 
         # Добавляем scroll в общую статистику
-        general_tab_layout = QVBoxLayout(self.general_stats_tab)
+        general_tab_layout = QVBoxLayout(general_stats_tab)
+        general_tab_layout.setContentsMargins(0, 0, 0, 0)
         general_tab_layout.addWidget(general_scroll)
 
         # Настройка детальной статистики
-        detailed_layout = QVBoxLayout(self.detailed_stats_tab)
-        detailed_layout.setContentsMargins(10, 10, 10, 10)
+        detailed_layout = QVBoxLayout(detailed_stats_tab)
+        detailed_layout.setContentsMargins(15, 15, 15, 15)
+        detailed_layout.setSpacing(10)
 
         results_label = QLabel("📝 История всех тестирований:")
         results_label.setFont(QFont("Segoe UI", 12, QFont.Bold))
         results_label.setStyleSheet("color: #2c3e50; background-color: transparent;")
         detailed_layout.addWidget(results_label)
 
-        self.statsList = QScrollArea()
-        self.statsList.setWidgetResizable(True)
-        self.statsList.setStyleSheet("QScrollArea { border: none; background-color: transparent; }")
+        statsList = QScrollArea()
+        statsList.setWidgetResizable(True)
+        statsList.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background-color: transparent;
+            }
+            QScrollBar:vertical {
+                background: #e9ecef;
+                width: 8px;
+                border-radius: 4px;
+            }
+            QScrollBar::handle:vertical {
+                background: #3498db;
+                border-radius: 4px;
+            }
+        """)
 
-        self.statsContent = QWidget()
-        self.statsContent.setStyleSheet("background-color: transparent;")
-        self.statsResultsLayout = QVBoxLayout(self.statsContent)
-        self.statsResultsLayout.setSpacing(10)
-        self.statsList.setWidget(self.statsContent)
-        detailed_layout.addWidget(self.statsList)
+        statsContent = QWidget()
+        statsContent.setStyleSheet("background-color: transparent;")
+        statsResultsLayout = QVBoxLayout(statsContent)
+        statsResultsLayout.setSpacing(10)
+        statsResultsLayout.setContentsMargins(5, 5, 5, 5)
+        statsList.setWidget(statsContent)
+        detailed_layout.addWidget(statsList)
 
         scroll_area.setWidget(content_widget)
         layout.addWidget(scroll_area)
+
+        # Сохраняем ссылки
+        self.stats_tabs = stats_tabs
+        self.general_stats_tab = general_stats_tab
+        self.detailed_stats_tab = detailed_stats_tab
+        self.statsInfoLabel = statsInfoLabel
+        self.chart_widget = chart_widget
+        self.pie_chart_widget = pie_chart_widget
+        self.statsList = statsList
+        self.statsContent = statsContent
+        self.statsResultsLayout = statsResultsLayout
+
+    def clear_ui_state(self):
+        """Полная очистка состояния интерфейса"""
+        # Очищаем вкладки
+        if hasattr(self, 'admin_users_tab') and self.admin_users_tab:
+            self.admin_users_tab = None
+        if hasattr(self, 'admin_questions_tab') and self.admin_questions_tab:
+            self.admin_questions_tab = None
+        if hasattr(self, 'admin_materials_tab') and self.admin_materials_tab:
+            self.admin_materials_tab = None
+        if hasattr(self, 'admin_stats_tab') and self.admin_stats_tab:
+            self.admin_stats_tab = None
+
+        # Очищаем layout вкладки статистики
+        if hasattr(self, 'statsTab'):
+            # Полностью очищаем statsTab
+            old_layout = self.statsTab.layout()
+            if old_layout:
+                self.clear_layout(old_layout)
+
+            # Создаем новый пустой layout
+            new_layout = QVBoxLayout(self.statsTab)
+            new_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Очищаем layout вкладки обучения
+        if hasattr(self, 'studyTab'):
+            old_layout = self.studyTab.layout()
+            if old_layout:
+                self.clear_layout(old_layout)
+
+            new_layout = QVBoxLayout(self.studyTab)
+            new_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Очищаем layout вкладки ошибок
+        if hasattr(self, 'mistakesTab'):
+            old_layout = self.mistakesTab.layout()
+            if old_layout:
+                self.clear_layout(old_layout)
+
+            new_layout = QVBoxLayout(self.mistakesTab)
+            new_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Очищаем layout вкладки тестирования (если нужно)
+        if hasattr(self, 'testTab'):
+            old_layout = self.testTab.layout()
+            if old_layout:
+                self.clear_layout(old_layout)
+
+            new_layout = QVBoxLayout(self.testTab)
+            new_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Очищаем layout вкладки практики
+        if hasattr(self, 'practiceTab'):
+            old_layout = self.practiceTab.layout()
+            if old_layout:
+                self.clear_layout(old_layout)
+
+            new_layout = QVBoxLayout(self.practiceTab)
+            new_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Отключаем сигналы смены вкладки
+        try:
+            self.tabWidget.currentChanged.disconnect()
+        except:
+            pass
