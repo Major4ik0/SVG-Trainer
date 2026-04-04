@@ -13,7 +13,6 @@ from PyQt5.QtCore import Qt
 
 
 def main():
-    # Создаем необходимые директории
     os.makedirs("materials", exist_ok=True)
     os.makedirs("questions_images", exist_ok=True)
 

@@ -35,7 +35,7 @@ jobs:
           $exe_name = "SVGTrainer_x64"
           Remove-Item -Recurse -Force dist, build -ErrorAction SilentlyContinue
           
-          pyinstaller --onefile --windowed --name="$exe_name" --noupx --clean `
+          pyinstaller --onefile --console --windowed --name="$exe_name" --noupx --clean `
             --hidden-import=PyQt5 `
             --hidden-import=PyQt5.QtCore `
             --hidden-import=PyQt5.QtGui `
@@ -100,7 +100,7 @@ jobs:
           $exe_name = "SVGTrainer_x86"
           Remove-Item -Recurse -Force dist, build -ErrorAction SilentlyContinue
           
-          pyinstaller --onefile --windowed --name="$exe_name" --noupx --clean `
+          pyinstaller --onefile --console --windowed --name="$exe_name" --noupx --clean `
             --hidden-import=PyQt5 `
             --hidden-import=PyQt5.QtCore `
             --hidden-import=PyQt5.QtGui `

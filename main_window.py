@@ -267,7 +267,11 @@ class MainWindow(QMainWindow):
         self.hide()
         login_dialog = LoginDialog(self.auth_manager, self)
         login_dialog.login_successful.connect(self.on_login_success)
-        login_dialog.exec_()
+
+        # Если диалог был закрыт (через крестик или Esc), выходим из приложения
+        if login_dialog.exec_() != QDialog.Accepted:
+            QApplication.quit()
+            sys.exit(0)
 
     def update_user_info(self):
         user = self.auth_manager.get_current_user()
@@ -1341,9 +1345,9 @@ class MainWindow(QMainWindow):
             login_dialog.login_successful.connect(self.on_login_success)
 
             # Если диалог был закрыт без входа (крестик), выходим из приложения
-            if login_dialog.exec_() == QDialog.Rejected:
-                # Если пользователь закрыл окно входа, выходим из приложения
+            if login_dialog.exec_() != QDialog.Accepted:
                 QApplication.quit()
+                sys.exit(0)
 
     def logout(self):
         self.auth_manager.logout()
